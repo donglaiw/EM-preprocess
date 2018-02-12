@@ -12,6 +12,7 @@ EMAIL = "weiddoonngglai@gmail.com"
 LICENSE = "Apache 2.0"
 SRC_DIR = "idm"
 PACKAGES = [SRC_DIR]
+URL = "https://github.com/donglaiw/IDM"
 
 ext_1 = Extension(SRC_DIR + ".wrapped",
                   [SRC_DIR + "/src/idm.c", SRC_DIR + "/idm_main.pyx"],

@@ -1,0 +1,4 @@
+idm/idm_main.c
+*.egg-info
+*.so
+*~
