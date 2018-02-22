@@ -1,6 +1,7 @@
 from setuptools import setup, Extension
 from Cython.Distutils import build_ext
 import numpy as np
+import glob
 
 NAME = "idm"
 VERSION = "0.1"
@@ -13,13 +14,17 @@ LICENSE = "Apache 2.0"
 SRC_DIR = "idm"
 URL = 'https://github.com/donglaiw/IDM'
 PACKAGES = [SRC_DIR]
+EXTENSIONS = []
 
-ext_1 = Extension(SRC_DIR + ".idm",
-                  [SRC_DIR + "/src/idm_main.c", SRC_DIR + "/idm.pyx"],
-                  libraries=[],
-                  include_dirs=[np.get_include()])
+EXTENSIONS= [Extension(SRC_DIR + ".idm",
+                  [SRC_DIR + "/cpp_idm/idm_main.c", SRC_DIR + "/idm.pyx"],
+                  include_dirs=[np.get_include()])]
 
-EXTENSIONS = [ext_1]
+flow_files = [SRC_DIR +'/pyflow.pyx']
+flow_files.extend(glob.glob(SRC_DIR +"cpp_flow/*.cpp"))
+EXTENSIONS= [Extension(SRC_DIR + ".flow",
+                  flow_files,
+                  include_dirs=[np.get_include()])]
 
 if __name__ == "__main__":
     setup(install_requires=REQUIRES,
