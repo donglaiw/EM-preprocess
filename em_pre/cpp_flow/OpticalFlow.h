@@ -46,7 +46,7 @@ public:
 
 	// function of coarse to fine optical flow
 	static void Coarse2FineFlow(DImage& vx,DImage& vy,DImage &warpI2,const DImage& Im1,const DImage& Im2,double alpha,double ratio,int minWidth,
-            int nOuterFPIterations,int nInnerFPIterations,int nCGIterations, double warp_step);
+            int nOuterFPIterations,int nInnerFPIterations,int nCGIterations, double warp_step, int medfilt_hsz);
 
 	static void Coarse2FineFlowLevel(DImage& vx,DImage& vy,DImage &warpI2,const DImage& Im1,const DImage& Im2,double alpha,double ratio,int nLevels,
 															int nOuterFPIterations,int nInnerFPIterations,int nCGIterations);
@@ -104,9 +104,12 @@ public:
 		int nOuterFPIterations=15;
 		int nInnerFPIterations=1;
 		int nCGIterations=40;
+		int warp_step=1;
+		int medfilt_hsz=0;
 
 		DImage vx,vy,warpI2;
-		OpticalFlow::Coarse2FineFlow(vx,vy,warpI2,Im1,Im2,alpha,ratio,minWidth,nOuterFPIterations,nInnerFPIterations,nCGIterations,1);
+		OpticalFlow::Coarse2FineFlow(vx,vy,warpI2,Im1,Im2,alpha,ratio,minWidth,
+                nOuterFPIterations,nInnerFPIterations,nCGIterations,warp_step,medfilt_hsz);
 		AssembleFlow(vx,vy,flow);
 	}
 };

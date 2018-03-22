@@ -9,11 +9,7 @@
 
 using namespace std;
 
-#ifndef _MATLAB
-	bool OpticalFlow::IsDisplay=true;
-#else
-	bool OpticalFlow::IsDisplay=false;
-#endif
+bool OpticalFlow::IsDisplay=false;
 
 //OpticalFlow::InterpolationMethod OpticalFlow::interpolation = OpticalFlow::Bicubic;
 OpticalFlow::InterpolationMethod OpticalFlow::interpolation = OpticalFlow::Bilinear;
@@ -941,7 +937,7 @@ void OpticalFlow::testLaplacian(int dim)
 // function to perfomr coarse to fine optical flow estimation
 //--------------------------------------------------------------------------------------
 void OpticalFlow::Coarse2FineFlow(DImage &vx, DImage &vy, DImage &warpI2,const DImage &Im1, const DImage &Im2, double alpha, double ratio, int minWidth,
-                 int nOuterFPIterations, int nInnerFPIterations, int nCGIterations, double warp_step)
+                 int nOuterFPIterations, int nInnerFPIterations, int nCGIterations, double warp_step, int medfilt_hsz)
 {
 	// first build the pyramid of the two images
 	GaussianPyramid GPyramid1;
@@ -980,8 +976,8 @@ void OpticalFlow::Coarse2FineFlow(DImage &vx, DImage &vy, DImage &warpI2,const D
 
 		if(k==GPyramid1.nlevels()-1) // if at the top level
 		{
-			//vx.allocate(width,height);
-			//vy.allocate(width,height);
+			vx.imresize(width,height);
+			vy.imresize(width,height);
 			//warpI2.copyData(Image2);
 			WarpImage2.copyData(Image2);
 		}
@@ -1007,8 +1003,14 @@ void OpticalFlow::Coarse2FineFlow(DImage &vx, DImage &vy, DImage &warpI2,const D
 		//GMPara.display();
 		if(IsDisplay)
 			cout<<endl;
+        // donglai: add median filter
+        if(medfilt_hsz>0){
+            vx.MedianFilter(medfilt_hsz);
+            vy.MedianFilter(medfilt_hsz);
+        }
 	}
 	//warpFL(warpI2,Im1,Im2,vx,vy);
+    // donglai: allow half-way interpolation
     if(warp_step>0){
         if(warp_step<1){
 			vx.Multiplywith(warp_step);

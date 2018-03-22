@@ -5,8 +5,6 @@
 // Author: Deepak Pathak (c) 2016
 
 #include "Coarse2FineFlowWrapper.h"
-#include "Image.h"
-#include "OpticalFlow.h"
 using namespace std;
 
 void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
@@ -14,7 +12,8 @@ void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
                               double alpha, double ratio, int minWidth,
                               int nOuterFPIterations, int nInnerFPIterations,
                               int nSORIterations, int colType,
-                              int h, int w, int c, double warp_step) {
+                              int h, int w, int c, 
+                              double warp_step, int medfilt_hsz) {
   DImage ImFormatted1, ImFormatted2;
   DImage vxFormatted, vyFormatted, warpI2Formatted;
 
@@ -33,7 +32,7 @@ void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
                                 ImFormatted1, ImFormatted2,
                                 alpha, ratio, minWidth,
                                 nOuterFPIterations, nInnerFPIterations,
-                                nSORIterations, warp_step);
+                                nSORIterations, warp_step, medfilt_hsz);
 
   // copy formatted output to a contiguous memory to be returned
   memcpy(vx, vxFormatted.pData, h * w * sizeof(double));
@@ -55,7 +54,8 @@ void Coarse2FineFlowWrapper_ims(double * warpI2,
                               double alpha, double ratio, int minWidth,
                               int nOuterFPIterations, int nInnerFPIterations,
                               int nSORIterations, int colType,
-                              int h, int w, int c, double warp_step) {
+                              int h, int w, int c, 
+                              double warp_step, int im_step, int medfilt_hsz) {
   DImage ImFormatted1, ImFormatted2;
   DImage vxFormatted, vyFormatted, warpI2Formatted;
 
@@ -68,19 +68,21 @@ void Coarse2FineFlowWrapper_ims(double * warpI2,
   vyFormatted.allocate(w, h);
   warpI2Formatted.allocate(w, h, c);
 
-  size_t im_size = h * w * c * sizeof(double);
-  for (int i=0;i<nIm-1;i++){
-      memcpy(ImFormatted1.pData, Ims + i*im_size, im_size);
-      memcpy(ImFormatted2.pData, Ims + (i+1)*im_size, im_size);
+  size_t im_size = h * w * c ;
+  
+  for (int i=0;i<nIm-im_step;i++){
+      cout<<"warp image: "<<(i+1)<<"/"<<nIm-1<<endl;
+      memcpy(ImFormatted1.pData, Ims + i*im_size, im_size* sizeof(double));
+      memcpy(ImFormatted2.pData, Ims + (i+im_step)*im_size, im_size* sizeof(double));
       // call optical flow backend
       OpticalFlow::Coarse2FineFlow(vxFormatted, vyFormatted, warpI2Formatted,
                                     ImFormatted1, ImFormatted2,
                                     alpha, ratio, minWidth,
                                     nOuterFPIterations, nInnerFPIterations,
-                                    nSORIterations, warp_step);
+                                    nSORIterations, warp_step, medfilt_hsz);
 
       // copy formatted output to a contiguous memory to be returned
-      memcpy(warpI2 + i*im_size, warpI2Formatted.pData, im_size);
+      memcpy(warpI2 + i*im_size, warpI2Formatted.pData, im_size* sizeof(double));
   }
 
   // clear c memory

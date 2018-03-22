@@ -1,0 +1,7 @@
+build/
+dist/
+*egg*
+*.sw*
+
+em_pre/*.cpp
+em_pre/*.c

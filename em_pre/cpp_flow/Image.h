@@ -12,6 +12,7 @@
 #include <typeinfo>
 #include "Vector.h"
 #include "Stochastic.h"
+#include "MedianFilter.h"
 
 #ifndef _MATLAB
 	#include "ImageIO.h"
@@ -131,7 +132,6 @@ public:
 // 	virtual bool imwrite(const char* filename) const;
 // 	virtual bool imwrite(const char* filename,ImageIO::ImageType) const;
 // 	//virtual bool imread(const QString& filename);
-// 	//virtual void imread(const QImage& image);
 //
 // 	//virtual bool imwrite(const QString& filename,int quality=100) const;
 // 	//virtual bool imwrite(const QString& filename,ImageIO::ImageType imagetype,int quality=100) const;
@@ -279,6 +279,8 @@ public:
 	void MultiplywithAcross(const Image<T1>& image1);
 
 	void Multiplywith(double value);
+	
+    void MedianFilter(int win_hsize);
 
 	template <class T1,class T2>
 	void Add(const Image<T1>& image1,const Image<T2>& image2);
@@ -1777,6 +1779,12 @@ void Image<T>::Multiplywith(double value)
 		pData[i]*=value;
 }
 
+template <class T>
+void Image<T>::MedianFilter(int win_hsize)
+{
+    // h,w,c
+    medianFilter(pData, imHeight, imWidth, nChannels, win_hsize);
+}
 //------------------------------------------------------------------------------------------
 // function to add image2 to image1 to the current image
 //------------------------------------------------------------------------------------------
@@ -2847,5 +2855,8 @@ void Image<T>::OutputToMatlab(mxArray *&matrix) const
 
 	ConvertToMatlab<T>((T*)mxGetData(matrix));
 }
+
+
+
 
 #endif
