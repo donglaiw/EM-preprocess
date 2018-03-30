@@ -14,12 +14,12 @@ extern void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
                               int nOuterFPIterations, int nInnerFPIterations,
                               int nSORIterations, int colType,
                               int h, int w, int c, 
-                              double warp_step, int medfilt_hsz);
+                              double warp_step, int medfilt_hsz, double flow_scale);
 extern void Coarse2FineFlowWrapper_ims(double * warpI2,
                                   const double * Ims, int nIm,
                                   double alpha, double ratio, int minWidth,
                                   int nOuterFPIterations, int nInnerFPIterations,
                                   int nSORIterations, int colType,
                                   int h, int w, int c, 
-                                  double warp_step, int im_step, int medfilt_hsz);
+                                  double warp_step, int im_step, int medfilt_hsz, double flow_scale);
 

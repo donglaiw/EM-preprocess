@@ -936,16 +936,27 @@ void OpticalFlow::testLaplacian(int dim)
 //--------------------------------------------------------------------------------------
 // function to perfomr coarse to fine optical flow estimation
 //--------------------------------------------------------------------------------------
-void OpticalFlow::Coarse2FineFlow(DImage &vx, DImage &vy, DImage &warpI2,const DImage &Im1, const DImage &Im2, double alpha, double ratio, int minWidth,
-                 int nOuterFPIterations, int nInnerFPIterations, int nCGIterations, double warp_step, int medfilt_hsz)
+void OpticalFlow::Coarse2FineFlow(DImage &vx, DImage &vy, DImage &warpI2,const DImage &Im1, const DImage &Im2, 
+        double alpha, double ratio, int minWidth, int nOuterFPIterations, int nInnerFPIterations, int nCGIterations, 
+        double warp_step, int medfilt_hsz, double flow_scale)
 {
+    DImage Im1_p,Im2_p;
+    if (flow_scale!=1){
+        // first downsample the image
+        Im1.imresize(Im1_p, flow_scale);
+        Im2.imresize(Im2_p, flow_scale);
+    }else{
+        Im1_p = Im1;
+        Im2_p = Im2;
+    }
+    
 	// first build the pyramid of the two images
 	GaussianPyramid GPyramid1;
 	GaussianPyramid GPyramid2;
 	if(IsDisplay)
 		cout<<"Constructing pyramid...";
-	GPyramid1.ConstructPyramid(Im1,ratio,minWidth);
-	GPyramid2.ConstructPyramid(Im2,ratio,minWidth);
+	GPyramid1.ConstructPyramid(Im1_p,ratio,minWidth);
+	GPyramid2.ConstructPyramid(Im2_p,ratio,minWidth);
 	if(IsDisplay)
 		cout<<"done!"<<endl;
 
@@ -1016,7 +1027,15 @@ void OpticalFlow::Coarse2FineFlow(DImage &vx, DImage &vy, DImage &warpI2,const D
 			vx.Multiplywith(warp_step);
 			vy.Multiplywith(warp_step);
         }
+        if (flow_scale!=1){
+            // upsample back the flow
+			vx.imresize(Im1.width(), Im1.height());
+			vx.Multiplywith(1.0/flow_scale);
+			vy.imresize(Im1.width(), Im1.height());
+			vy.Multiplywith(1.0/flow_scale);
+        }
         Im2.warpImageBicubicRef(Im1,warpI2,vx,vy);
+        // clip the image range
         warpI2.threshold();
     }
 }

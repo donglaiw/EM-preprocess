@@ -45,8 +45,9 @@ public:
 	static void testLaplacian(int dim=3);
 
 	// function of coarse to fine optical flow
-	static void Coarse2FineFlow(DImage& vx,DImage& vy,DImage &warpI2,const DImage& Im1,const DImage& Im2,double alpha,double ratio,int minWidth,
-            int nOuterFPIterations,int nInnerFPIterations,int nCGIterations, double warp_step, int medfilt_hsz);
+	static void Coarse2FineFlow(DImage& vx,DImage& vy,DImage &warpI2,const DImage& Im1,const DImage& Im2,
+            double alpha,double ratio,int minWidth,int nOuterFPIterations,int nInnerFPIterations,int nCGIterations, 
+            double warp_step, int medfilt_hsz, double flow_scale);
 
 	static void Coarse2FineFlowLevel(DImage& vx,DImage& vy,DImage &warpI2,const DImage& Im1,const DImage& Im2,double alpha,double ratio,int nLevels,
 															int nOuterFPIterations,int nInnerFPIterations,int nCGIterations);
@@ -106,10 +107,12 @@ public:
 		int nCGIterations=40;
 		int warp_step=1;
 		int medfilt_hsz=0;
+		double flow_scale=1;
 
 		DImage vx,vy,warpI2;
 		OpticalFlow::Coarse2FineFlow(vx,vy,warpI2,Im1,Im2,alpha,ratio,minWidth,
-                nOuterFPIterations,nInnerFPIterations,nCGIterations,warp_step,medfilt_hsz);
+                nOuterFPIterations,nInnerFPIterations,nCGIterations,
+                warp_step, medfilt_hsz, flow_scale);
 		AssembleFlow(vx,vy,flow);
 	}
 };

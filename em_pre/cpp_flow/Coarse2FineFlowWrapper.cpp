@@ -13,7 +13,7 @@ void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
                               int nOuterFPIterations, int nInnerFPIterations,
                               int nSORIterations, int colType,
                               int h, int w, int c, 
-                              double warp_step, int medfilt_hsz) {
+                              double warp_step, int medfilt_hsz, double flow_scale) {
   DImage ImFormatted1, ImFormatted2;
   DImage vxFormatted, vyFormatted, warpI2Formatted;
 
@@ -32,20 +32,21 @@ void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
                                 ImFormatted1, ImFormatted2,
                                 alpha, ratio, minWidth,
                                 nOuterFPIterations, nInnerFPIterations,
-                                nSORIterations, warp_step, medfilt_hsz);
+                                nSORIterations, warp_step, medfilt_hsz, flow_scale);
 
   // copy formatted output to a contiguous memory to be returned
   memcpy(vx, vxFormatted.pData, h * w * sizeof(double));
   memcpy(vy, vyFormatted.pData, h * w * sizeof(double));
-  memcpy(warpI2, warpI2Formatted.pData, h * w * c * sizeof(double));
+  if(warp_step>0){
+    memcpy(warpI2, warpI2Formatted.pData, h * w * c * sizeof(double));
+    warpI2Formatted.clear();
+  }
 
   // clear c memory
   ImFormatted1.clear();
   ImFormatted2.clear();
   vxFormatted.clear();
   vyFormatted.clear();
-  warpI2Formatted.clear();
-
   return;
 }
 
@@ -55,7 +56,7 @@ void Coarse2FineFlowWrapper_ims(double * warpI2,
                               int nOuterFPIterations, int nInnerFPIterations,
                               int nSORIterations, int colType,
                               int h, int w, int c, 
-                              double warp_step, int im_step, int medfilt_hsz) {
+                              double warp_step, int im_step, int medfilt_hsz, double flow_scale) {
   DImage ImFormatted1, ImFormatted2;
   DImage vxFormatted, vyFormatted, warpI2Formatted;
 
@@ -79,7 +80,7 @@ void Coarse2FineFlowWrapper_ims(double * warpI2,
                                     ImFormatted1, ImFormatted2,
                                     alpha, ratio, minWidth,
                                     nOuterFPIterations, nInnerFPIterations,
-                                    nSORIterations, warp_step, medfilt_hsz);
+                                    nSORIterations, warp_step, medfilt_hsz, flow_scale);
 
       // copy formatted output to a contiguous memory to be returned
       memcpy(warpI2 + i*im_size, warpI2Formatted.pData, im_size* sizeof(double));

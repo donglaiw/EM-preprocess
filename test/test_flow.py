@@ -3,7 +3,7 @@ import unittest
 import sys
 import numpy as np
 import time
-import imageio
+import cv2
 
 import em_pre
 
@@ -28,31 +28,57 @@ def getData():
     D1 = DD + 'df150_ds_h5_ind_slope/'
     img = np.array(h5py.File(D1+chunk+'/'+chunk+'_0_1.h5')['main'])
     for i in range(5):
-        imageio.imwrite('test/im'+str(i)+'.png', img[:,:,i])
+        cv2.imwrite('test/im'+str(i)+'.png', img[:,:,i])
 
 def check_warp_mf():
-    im1 = imageio.imread('test/im1.png')[:,:,None].astype(float) / 255.
-    im2 = imageio.imread('test/im2.png')[:,:,None].astype(float) / 255.
+    im1 = cv2.imread('test/im1.png',cv2.IMREAD_GRAYSCALE)[:,:,None].astype(float) / 255.
+    im2 = cv2.imread('test/im2.png',cv2.IMREAD_GRAYSCALE)[:,:,None].astype(float) / 255.
     ims = np.stack([im1,im2],axis=0)
     alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations, \
         nSORIterations, colType, warp_step, medfilt_hsz = getParam()
+    ratio = 0.5
 
     for warp_step in [0.5,1.0]:
+        """
         im2W2 = em_pre.coarse2fine_ims(
             ims, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
             nSORIterations, colType, warp_step, 1, 0)
-        imageio.imwrite('test/im2W_'+str(warp_step)+'.png',np.uint8(np.clip(255*im2W2[0,:,:,0],0,255)))
+        cv2.imwrite('test/im2W_'+str(warp_step)+'.png',np.uint8(np.clip(255*im2W2[0,:,:,0],0,255)))
         """
+
         im2W2m = em_pre.coarse2fine_ims(
             ims, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
             nSORIterations, colType, warp_step, 1, 2)
-        imageio.imwrite('test/im2Wm_'+str(warp_step)+'.png',np.uint8(255*im2W2m[0,:,:,0]))
-        """
+        cv2.imwrite('test/im2Wm_'+str(warp_step)+'.png',np.uint8(255*im2W2m[0,:,:,0]))
 
-class TestIDM(unittest.TestCase):
+        """
+        im2W2m = em_pre.coarse2fine_ims(
+            ims, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
+            nSORIterations, colType, warp_step, 1, 2, 0.5)
+        cv2.imwrite('test/im2Wm_'+str(warp_step)+'_05.png',np.uint8(255*im2W2m[0,:,:,0]))
+        """
+def check_warp_flow():
+    im1 = cv2.imread('test/im1.png',cv2.IMREAD_GRAYSCALE)[:,:,None].astype(float) / 255.
+    im2 = cv2.imread('test/im2.png',cv2.IMREAD_GRAYSCALE)[:,:,None].astype(float) / 255.
+
+    alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations, \
+        nSORIterations, colType, warp_step, medfilt_hsz = getParam()
+    minWidth = 64
+
+    u, v, im2W = em_pre.pyflow.coarse2fine_flow(
+        im1, im2, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
+        nSORIterations, colType, warp_step, medfilt_hsz)
+
+    flow = np.stack([u,v],axis=2).astype(np.float32)
+    im2W2 = em_pre.warp_flow(im2[:,:,0], flow, opt_interp=1, opt_border=2)
+    cv2.imwrite('test/im2Wm_byflow.png',np.uint8(255*im2W2))
+    #cv2.imwrite('test/im2Wm_bycpp.png',np.uint8(255*im2W))
+
+
+class TestFlow(unittest.TestCase):
     def test_warp(self):
-        im1 = imageio.imread('test/im1.png')[:,:,None].astype(float) / 255.
-        im2 = imageio.imread('test/im2.png')[:,:,None].astype(float) / 255.
+        im1 = cv2.imread('test/im1.png')[:,:,None].astype(float) / 255.
+        im2 = cv2.imread('test/im2.png')[:,:,None].astype(float) / 255.
 
         alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations, \
             nSORIterations, colType, warp_step, medfilt_hsz = getParam()
@@ -73,5 +99,6 @@ class TestIDM(unittest.TestCase):
 
 if __name__ == '__main__':                                                                                                           
     #getData()
-    check_warp_mf()
+    #check_warp_mf()
     #unittest.main()
+    check_warp_flow()
