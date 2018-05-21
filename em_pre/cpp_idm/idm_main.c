@@ -35,7 +35,7 @@ float patch_distance (int A_x,int A_y, int B_x, int B_y, int im_row, int im_col,
                             temp_h = img1[(A_x + x)*pre + (A_y + y)*im_chan + c] -
                                     img2[(B_x + x)*pre + (B_y + y)*im_chan + c];
                             dist += fabsf(temp_h);
-                            patch_sum += fabsf(temp_h);
+                            patch_sum += img1[(A_x + x)*pre + (A_y + y)*im_chan + c];
                             //dist+=temp_h*temp_h;
                             count++;
                         }

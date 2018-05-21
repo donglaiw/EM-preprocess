@@ -28,16 +28,21 @@ void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
   vyFormatted.allocate(w, h);
 
   // call optical flow backend
+  //cout<<"do 1"<<endl;
+  //cout<<h<<","<<w<<","<<c<<endl;
+  //cout<<alpha<<","<<ratio<<","<<minWidth<<","<<nOuterFPIterations<<","<<nInnerFPIterations<<","<<nSORIterations<<","<<warp_step<<","<<medfilt_hsz<<","<<flow_scale<<endl;
   OpticalFlow::Coarse2FineFlow(vxFormatted, vyFormatted, warpI2Formatted,
                                 ImFormatted1, ImFormatted2,
                                 alpha, ratio, minWidth,
                                 nOuterFPIterations, nInnerFPIterations,
                                 nSORIterations, warp_step, medfilt_hsz, flow_scale);
 
+  //cout<<"do 2"<<endl;
   // copy formatted output to a contiguous memory to be returned
   memcpy(vx, vxFormatted.pData, h * w * sizeof(double));
   memcpy(vy, vyFormatted.pData, h * w * sizeof(double));
   if(warp_step>0){
+    //cout<<"do 3"<<endl;
     memcpy(warpI2, warpI2Formatted.pData, h * w * c * sizeof(double));
     warpI2Formatted.clear();
   }
@@ -50,7 +55,7 @@ void Coarse2FineFlowWrapper(double * vx, double * vy, double * warpI2,
   return;
 }
 
-void Coarse2FineFlowWrapper_ims(double * warpI2,
+void Coarse2FineFlowWrapper_flows(double * warpI2,
                               const double * Ims, int nIm,
                               double alpha, double ratio, int minWidth,
                               int nOuterFPIterations, int nInnerFPIterations,
