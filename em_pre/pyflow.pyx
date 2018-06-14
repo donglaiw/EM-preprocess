@@ -101,9 +101,9 @@ def coarse2fine_flow_large(np.ndarray[double, ndim=3] Im1 not None,
                      double alpha=1, double ratio=0.5, int minWidth=40,
                      int nOuterFPIterations=3, int nInnerFPIterations=1,
                      int nSORIterations=20, int colType=0, 
-                     double warp_step=1.0, int medfilt_hsz=0, double flow_scale=1,
+                     double warp_step=1.0, int medfilt_hsz=0,
                      int tile_size=1024, int flow_pad=10, 
-                     int stripe_w=10, int stripe_k=2):
+                     int stripe_w=10, int stripe_k=2, double flow_scale=1):
     cdef int h = Im1.shape[0]
     cdef int w = Im1.shape[1]
     cdef int c = Im1.shape[2]

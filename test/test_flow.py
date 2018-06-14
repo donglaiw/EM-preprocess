@@ -90,7 +90,7 @@ def check_flow_large():
     stripe_k=2
     u, v, im2W = em_pre.pyflow.coarse2fine_flow_large(
         im1, im2, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
-        nSORIterations, colType, warp_step, medfilt_hsz, flow_scale, tile_size, flow_pad, stripe_w, stripe_k)
+        nSORIterations, colType, warp_step, medfilt_hsz, tile_size, flow_pad, stripe_w, stripe_k, flow_scale)
     cv2.imwrite('test/im2Wm_byflow_large_'+str(flow_pad)+'.png',im2W)
 
     flow = np.stack([u,v],axis=2).astype(np.float32)
