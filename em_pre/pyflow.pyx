@@ -57,10 +57,11 @@ def warp_flow(img, flow, opt_interp=0, opt_border=0):
 
 def coarse2fine_flow(np.ndarray[double, ndim=3] Im1 not None,
                      np.ndarray[double, ndim=3] Im2 not None,
-                     double alpha=1, double ratio=0.5, int minWidth=40,
-                     int nOuterFPIterations=3, int nInnerFPIterations=1,
-                     int nSORIterations=20, int colType=0, 
-                     double warp_step=1.0, int medfilt_hsz=0, double flow_scale=1):
+                    double warp_step=1.0, int medfilt_hsz=2, 
+                     double alpha=0.01, double ratio=0.75, int minWidth=64,
+                     int nOuterFPIterations=7, int nInnerFPIterations=1,
+                     int nSORIterations=30, int colType=0, 
+                     double flow_scale=1):
     # basic: Horn-Shunck flow estimation
     """
     Input Format:

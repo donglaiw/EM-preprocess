@@ -7,3 +7,5 @@ dist/
 
 em_pre/*.cpp
 em_pre/*.c
+
+tmp/
