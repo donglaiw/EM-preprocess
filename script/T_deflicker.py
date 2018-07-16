@@ -6,7 +6,7 @@ from em_pre.deflicker import deflicker_batch, deflicker_online
 from T_util import writeh5
 
 def test_snemi():
-    # load data
+    # load data: 100x1024x1024
     ims = np.array(h5py.File('/n/coxfs01/donglai/data/SNEMI3D/train-input.h5')['main'])
 
     # batch version

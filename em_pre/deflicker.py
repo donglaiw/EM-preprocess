@@ -5,18 +5,20 @@ import h5py
 import scipy.ndimage as nd
 
 def preprocess(im, globalStat=None, globalStatOpt=0):
+    # im: x,y,t
     if globalStatOpt == 0: 
         # mean/std
         if globalStat is not None:
+            mm = im.mean(axis=0).mean(axis=0)
             if globalStat[1]>0:
                 tmp_std = np.std(im)
                 if tmp_std<1e-3:
-                    im = (im - np.mean(im))+globalStat[0]
+                    im = (im-mm)+globalStat[0]
                 else:
-                    im = (im - np.mean(im))/np.std(im)*globalStat[1]+globalStat[0]
+                    im = (im-mm)/np.std(im)*globalStat[1]+globalStat[0]
             else:
                 if globalStat[0]>0:
-                    im = im - np.mean(im)+globalStat[0]
+                    im = im-mm+globalStat[0]
     return im
 
 def deflicker_batch(ims, opts=[0,0,0], globalStat=None, filterS_hsz=[15,15], filterT_hsz=2):
@@ -29,6 +31,12 @@ def deflicker_batch(ims, opts=[0,0,0], globalStat=None, filterS_hsz=[15,15], fil
     numSlice = ims.shape[2]
 
     print '1. global normalization'
+    if globalStat is None:
+        if opts[0]==0:
+            # stat of the first image
+            globalStat = [np.mean(ims[:,:,0]),np.std(ims[:,:,0])]
+        else:
+            raise('need to implement')
     ims = preprocess(ims.astype(np.float32), globalStat, opts[0])
 
     print '2. local normalization'
