@@ -839,8 +839,8 @@ void OpticalFlow::estLaplacianNoise(const DImage& Im1,const DImage& Im2,Vector<d
 	{
 		if(total[k]==0)
 		{
-			cout<<"All the pixels are invalid in estimation Laplacian noise!!!"<<endl;
-			cout<<"Something severely wrong happened!!!"<<endl;
+			//cout<<"All the pixels are invalid in estimation Laplacian noise!!!"<<endl;
+			//cout<<"Something severely wrong happened!!!"<<endl;
 			para[k] = 0.001;
 		}
 		else
