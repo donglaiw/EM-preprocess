@@ -3,57 +3,84 @@ import numpy as np
 import scipy.ndimage as nd
 import pycuda.driver as cuda
 import pycuda.autoinit
+from multiprocessing import Process
 from multiprocessing import Queue
 from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
+from threading import Thread, Lock
 import os
-import locked_dict
-
+NUM_BATCH_READ_PROCS = 4
 NUM_READ_ALLOC_PROCS = 32
+#TODO A sempahore to control the loading progress.
+class ImgHToDLoader(Thread):
+    def __init__(self, getter, start_idx, end_idx, originals, originals_lock, filtered_sets, filtered_lock,
+                 global_stat = None,
+                 global_stat_opt = 0):
+        Thread.__init__(self)
+        self.getter = getter
+        self.start_idx = start_idx
+        self.end_idx = end_idx
+        self.originals = originals
+        self.originals_lock = originals_lock
+        self.filtered_lock = filtered_lock
+        self.filtered_sets = filtered_sets
+        self.global_stat = global_stat
+        self.global_stat_opt = global_stat_opt
 
-def __np_arr_cuda_mem_alloc__(array):
-    """
-    Allocates the given numpy array on GPU memory.
-    :param array: the desired numpy array.
-    :return: the GPU memory reference when succeeds, -1 if a problem has been encountered.
-    """
-    try:
-        shape = array.nbytes
-        return cuda.mem_alloc(array.nbytes)
-    except cuda.MemoryError:
-        print 'Unable to allocate memory for numpy array.'
-        return -1
-    except AttributeError:
-        print 'The passed argument is not a numpy array: %s.' % array
-        return -1
-
-def __pre_process__(img, global_stat=None, global_stat_opt=0):
-    """
-    :param img:
-    :param global_stat:
-    :param global_stat_opt:
-    :return:
-    """
-    # im: x,y,t
-    if global_stat_opt == 0:
-        # mean/std
-        if global_stat is not None:
-            mm = img.mean(axis=0).mean(axis=0)
-            if global_stat[1] > 0:
-                tmp_std = np.std(img)
-                if tmp_std < 1e-3:
-                    img = (img - mm) + global_stat[0]
+    def _load_ims(self):
+        self.ims = ThreadPool(NUM_BATCH_READ_PROCS).map(self.getter, range(self.start_idx, self.end_idx))
+    def _pre_process_ims(self):
+        # im: x,y,t
+        if self.global_stat_opt == 0:
+            # mean/std
+            if self.global_stat is not None:
+                mm = self.ims.mean(axis=0).mean(axis=0)
+                if self.global_stat[1] > 0:
+                    tmp_std = np.std(self.ims)
+                    if tmp_std < 1e-3:
+                        self.ims = (self.ims - mm) + self.global_stat[0]
+                    else:
+                        self.ims = (self.ims - mm) / np.std(self.ims) * self.global_stat[1] + self.global_stat[0]
                 else:
-                    img = (img - mm) / np.std(img) * global_stat[1] + global_stat[0]
-            else:
-                if global_stat[0] > 0:
-                    img = img - mm + global_stat[0]
-    return img
+                    if self.global_stat[0] > 0:
+                        self.ims = self.ims - mm + self.global_stat[0]
+        return self.ims
 
-def __load_pre_process_allocate__(get_img, idx, global_stat=None, global_stat_opt=0):
-    ready_to_alloc_img = __pre_process__(img=get_img(idx), global_stat=global_stat, global_stat_opt=global_stat_opt)
-    return __np_arr_cuda_mem_alloc__(ready_to_alloc_img)
+    def _single_img_htod(self, img):
+        img_d = cuda.mem_alloc(img.nbytes)
+        cuda.memcpy_htod(img_d, img)
+        return img_d
 
-def __create_filters__(filter_s_hsz, filter_t_hsz, opts):
+    def _batch_img_htod(self):
+        num_bytes = self.ims[0].nbytes
+        return ThreadPool(NUM_BATCH_READ_PROCS).map(self._single_img_htod, self.ims)
+
+    def _write_to_dict(self, dict, lock):
+        lock.aquire()
+        for i, img_d in enumerate(self.batch_d):
+            dict[i + self.start_idx] = img_d
+        lock.release()
+
+    #TODO Import the CV2 kernel for this.
+    def _filter2d_cuda_single(self, img_d):
+        return
+
+
+
+    def _filter2d_cuda_batch(self):
+        return ThreadPool(NUM_BATCH_READ_PROCS).map(self._filter2d_cuda_single, self.batch_d)
+
+
+    def run(self):
+        self._load_ims()
+        self._pre_process_ims()
+        self.batch_d = self._batch_img_htod()
+        self._write_to_dict(self.originals, self.originals_lock)
+        self._filter2d_cuda_batch()
+        self._write_to_dict(self.filtered_sets, self.filtered_lock)
+        return
+
+def _create_filters(filter_s_hsz, filter_t_hsz, opts):
     spat_size = [x * 2 + 1 for x in filter_s_hsz]
     temp_size = 2 * filter_t_hsz + 1
     if opts[1] == 0:  # mean filter: sum to 1
@@ -61,6 +88,13 @@ def __create_filters__(filter_s_hsz, filter_t_hsz, opts):
     else:
         raise Exception('need to implement')
     return spat_filter, temp_size
+
+def _fork():
+    try:
+        return os.fork()
+    except OSError:
+        print "Failed to create a child image producer process."
+        return
 
 def de_flicker_batch(ims, opts=(0, 0, 0), globalStat=None, filterS_hsz=(15, 15), filterT_hsz=2):
     # ims: x,y,t
@@ -77,7 +111,7 @@ def de_flicker_batch(ims, opts=(0, 0, 0), globalStat=None, filterS_hsz=(15, 15),
             globalStat = [np.mean(ims[:, :, 0]), np.std(ims[:, :, 0])]
         else:
             raise ('need to implement')
-    ims = __pre_process__(ims.astype(np.float32), globalStat, opts[0])
+    ims = _pre_process(ims.astype(np.float32), globalStat, opts[0])
 
     print '2. local normalization'
     print '2.1 compute spatial mean'
@@ -97,6 +131,10 @@ def de_flicker_batch(ims, opts=(0, 0, 0), globalStat=None, filterS_hsz=(15, 15),
     out = np.clip(out, 0, 255).astype(np.uint8)  # (-1).uint8=254
     return out
 
+
+
+
+
 def de_flicker_online(get_im, num_slice=100, opts=(0, 0, 0),
                       global_stat=None, filter_s_hsz=(15, 15), filter_t_hsz=2):
     # im: x,y,t
@@ -104,8 +142,7 @@ def de_flicker_online(get_im, num_slice=100, opts=(0, 0, 0),
     # seq stats: imSize, globalStat, globalStatOpt
     im0 = get_im(0)
     imSize = im0.shape
-    spatial_filter, temp_size = __create_filters__(filter_s_hsz, filter_t_hsz, opts)
-    #Create an empty output. Why?
+    spatial_filter, temp_size = _create_filters(filter_s_hsz, filter_t_hsz, opts)
     print '1. global normalization'
     if global_stat is None:
         if opts[0] == 0:
@@ -119,24 +156,46 @@ def de_flicker_online(get_im, num_slice=100, opts=(0, 0, 0),
     # e.g. sizeT=7, filterT_hsz=3, mid_r=3
     for i in range(filter_t_hsz + 1):  # 0-3
         # flip the initial frames to pad
-        mean_tensor[:, :, i] = cv2.filter2D(__pre_process__(get_im(filter_t_hsz - i), global_stat, opts[0]),
-                                           -1, spatial_filter, borderType=cv2.BORDER_REFLECT_101)
+        mean_tensor[:, :, i] = cv2.filter2D(_pre_process(get_im(filter_t_hsz - i), global_stat, opts[0]),
+                                            -1, spatial_filter, borderType=cv2.BORDER_REFLECT_101)
     for i in range(filter_t_hsz - 1):  # 0-1 -> 4-5
         mean_tensor[:, :, filter_t_hsz + 1 + i] = mean_tensor[:, :, filter_t_hsz - 1 - i].copy()
 
 
     # Step 1: Loading and pre-processing the image.
-    try:
-        reader_pid = os.fork()
-    except OSError:
-        print "Failed to create a child image producer process."
-        return
-    if reader_pid == 0: #The child process is in charge of reading and processing the images and feeding them into the gpu.
-        single_worker_task = lambda x: __load_pre_process_allocate__(get_im, x, global_stat, opts[0])
-        read_alloc_procs = Pool(NUM_READ_ALLOC_PROCS)
-        read_alloc_procs.map(single_worker_task, range(num_slice))
+
+
+    reader_pid = _fork()
+    if reader_pid == 0: #The child process reads and processes the images and feeds them into the gpu.
+        for i in range(num_slice / temp_size):
+            current_batch = batch_img_loader(get_im, i * temp_size, temp_size)
+            Process(target=_load_pre_process_allocate, args=(current_batch, global_stat, opts[0])).start()
+        last_batch = batch_img_loader(get_im, temp_size * (num_slice / temp_size), num_slice % temp_size)
+        Process(target=_load_pre_process_allocate, args=(last_batch, global_stat, opts[0])).start()
         os._exit(0)
     else: #parent process
+        originals = {}
+        filtered = {}
+        orig_lock = Lock()
+        filt_lock = Lock()
+        htod_loader_threads = [ImgHToDLoader(getter=get_im,
+                                             start_idx=i * temp_size,
+                                             end_idx=(i + 1) * temp_size,
+                                             originals=originals,
+                                             originals_lock=orig_lock,
+                                             filtered_sets=filtered,
+                                             filtered_lock=filt_lock,
+                                             global_stat=global_stat,
+                                             global_stat_opt=opts[0]) for i in range(num_slice / temp_size) ]
+        htod_loader_threads.append(ImgHToDLoader(getter=get_im,
+                                                 start_idx=temp_size * (num_slice / temp_size),
+                                                 end_idx=num_slice,
+                                                 originals=originals,
+                                                 originals_lock=orig_lock,
+                                                 filtered_sets=filtered,
+                                                 filtered_lock=filt_lock,
+                                                 global_stat=global_stat,
+                                                 global_stat_opt=opts[0]))
         # online change chunk
         print '2. local normalization'
         im_id = filter_t_hsz  # image
@@ -144,13 +203,13 @@ def de_flicker_online(get_im, num_slice=100, opts=(0, 0, 0),
         for i in range(num_slice):
             print 'process: %s/%s' % (i + 1, num_slice)
             # current frame
-            im = __pre_process__(get_im(i), global_stat, opts[0])
+            im = _pre_process(get_im(i), global_stat, opts[0])
 
             # last frame needed for temporal filter
             if filter_t_hsz + i < num_slice:
-                imM = __pre_process__(get_im(filter_t_hsz + i), global_stat, opts[0])
+                imM = _pre_process(get_im(filter_t_hsz + i), global_stat, opts[0])
             else:  # reflection mean
-                imM = __pre_process__(get_im(num_slice - 1 - filter_t_hsz + (num_slice - 1 - i)), global_stat, opts[0])
+                imM = _pre_process(get_im(num_slice - 1 - filter_t_hsz + (num_slice - 1 - i)), global_stat, opts[0])
             mean_tensor[:, :, chunk_id] = cv2.filter2D(imM, -1, spatial_filter, borderType=cv2.BORDER_REFLECT_101)
 
             # local temporal filtering
