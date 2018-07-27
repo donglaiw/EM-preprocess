@@ -6,7 +6,7 @@ import glob
 NAME = "em_pre"
 VERSION = "0.1"
 DESCR = "cython implementation of Deformation Models for Image Recognition"
-REQUIRES = ['cython','numpy']
+REQUIRES = ['cython','numpy', 'cv2', 'torch', 'h5py']
 
 AUTHOR = "Donglai Wei"
 EMAIL = "weiddoonngglai@gmail.com"
