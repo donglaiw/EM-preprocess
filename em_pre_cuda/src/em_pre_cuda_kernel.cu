@@ -1,13 +1,11 @@
 #include "em_pre_cuda_kernel.h"
+#include <iostream>
 
-at::Tensor cuda_median_3d(at::Tensor &input, at::Tensor &filter, int halo, cudaStream_t stream)
+at::Tensor cuda_median_3d(at::Tensor input, at::Tensor filter, int32_t halo, cudaStream_t stream)
 {
     auto dim_x = input.size(2);
     auto dim_y = input.size(1);
     auto dim_z = input.size(0);
-    auto radius_z = filter.size(2);
-    auto radius_y = filter.size(1);
-    auto radius_x = filter.size(0);
     auto output = at::zeros_like(input);
     dim3 blockDim(8, 8, 8);
     dim3 gridDim(
@@ -20,46 +18,48 @@ at::Tensor cuda_median_3d(at::Tensor &input, at::Tensor &filter, int halo, cudaS
         __median_3d<scalar_t><<<gridDim, blockDim, sharedMemSize, stream>>>(
             input.data<scalar_t>(),
             output.data<scalar_t>(),
+            filter.data<scalar_t>(),
             dim_x,
             dim_y,
             dim_z,
-            radius_z,
-            radius_y,
-            radius_x,
             halo);
       }));
     return output;
 }
 
-inline __device__ __host__ int clamp_mirror(int f, int a, int b)
+inline __device__ __host__ int32_t clamp_mirror(int32_t f, int32_t a, int32_t b)
 {
     if(f<a) return (a+(a-f));
     if(f>b) return (b-(f-b));
     return f;
 }
-#define at(x, y, z, dim_x, dim_y, dim_z) ( clamp_mirror((int)z, 0, dim_z-1)*dim_y*dim_x +       \
-                                        clamp_mirror((int)y, 0, dim_y-1)*dim_x +            \
-                                        clamp_mirror((int)x, 0, dim_x-1) )
+#define at(x, y, z, dim_x, dim_y, dim_z) ( clamp_mirror((int32_t)z, 0, dim_z-1)*dim_y*dim_x +       \
+                                        clamp_mirror((int32_t)y, 0, dim_y-1)*dim_x +            \
+                                        clamp_mirror((int32_t)x, 0, dim_x-1) )
 
 template <typename scalar_t>
 __global__ void __median_3d(scalar_t* __restrict__ deviceSrc, 
-    scalar_t* __restrict__ deviceDst, 
-    int dim_z, int dim_y, int dim_x, int radius_z, int radius_y, int radius_x, int halo)
+    scalar_t* __restrict__ deviceDst,
+    scalar_t* __restrict__ filter, 
+    int32_t dim_x, int32_t dim_y, int32_t dim_z, int32_t halo)
 {
+    int32_t radius_x = filter[2];
+    int32_t radius_y = filter[1];
+    int32_t radius_z = filter[0];
     extern __shared__ float sharedMemSrc[];
-    int  shared_index_1d, global_index_1d, index_1d;
+    int32_t  shared_index_1d, global_index_1d, index_1d;
     int3 shared_index_3d, global_index_3d, index_3d;
     // Multi batch reading here
     int3 sharedMemDim    = make_int3(blockDim.x+2*halo,
                                      blockDim.y+2*halo,
                                      blockDim.z+2*halo);
-    int  sharedMemSize   = sharedMemDim.x*sharedMemDim.y*sharedMemDim.z;
+    int32_t  sharedMemSize   = sharedMemDim.x*sharedMemDim.y*sharedMemDim.z;
     int3 blockSizeDim    = make_int3(blockDim.x+0*halo,
                                      blockDim.y+0*halo,
                                      blockDim.z+0*halo);
-    int  blockSize        = blockSizeDim.x*blockSizeDim.y*blockSizeDim.z;
-    int  numBatches       = sharedMemSize/blockSize + ((sharedMemSize%blockSize)?1:0);
-    for(int batch=0; batch<numBatches; batch++)
+    int32_t  blockSize        = blockSizeDim.x*blockSizeDim.y*blockSizeDim.z;
+    int32_t  numBatches       = sharedMemSize/blockSize + ((sharedMemSize%blockSize)?1:0);
+    for(int32_t batch=0; batch<numBatches; batch++)
     {
         shared_index_1d  =  threadIdx.z * blockDim.y * blockDim.x +
                             threadIdx.y * blockDim.x +
@@ -122,15 +122,15 @@ __global__ void __median_3d(scalar_t* __restrict__ deviceSrc,
     float maxval = 255.0f;
     float pivot  = (minval + maxval)/2.0f;
     float val;
-    int count  = 0;
-    for(int trial=0; trial<8; trial++)
+    int32_t count  = 0;
+    for(int32_t trial=0; trial<8; trial++)
     {
         count = 0;
-        for(int z=threadIdx.z+halo-radius_z; z<=threadIdx.z+halo+radius_z; z++)
+        for(int32_t z=threadIdx.z+halo-radius_z; z<=threadIdx.z+halo+radius_z; z++)
         {
-            for(int y=threadIdx.y+halo-radius_y; y<=threadIdx.y+halo+radius_y; y++)
+            for(int32_t y=threadIdx.y+halo-radius_y; y<=threadIdx.y+halo+radius_y; y++)
             {
-                for(int x=threadIdx.x+halo-radius_x; x<=threadIdx.x+halo+radius_x; x++)
+                for(int32_t x=threadIdx.x+halo-radius_x; x<=threadIdx.x+halo+radius_x; x++)
                 {
                     val = sharedMemSrc[at(x, y, z, sharedMemDim.x, sharedMemDim.y, sharedMemDim.z)];
                     if(val>pivot)
