@@ -3,7 +3,7 @@ import numpy as np
 import scipy.ndimage as nd
 import torch
 from torch.nn.functional import conv2d
-import cuda_3d_median as cuda
+import em_pre_cuda as cuda
 
 def _pre_process_ims(ims, global_stat=None, global_stat_opt=0):
     # im: x,y,t
@@ -72,6 +72,10 @@ def _3d_median_filter(ims, filter_shape, device):
         cuda.median_filter(ims, output, *(map(int, ims.size()) + filter_shape))
     else:
         return nd.median_filter(ims.numpy(), filter_shape)
+
+def _conv_2d(img, filter, device):
+    if device == "cuda":
+        conv2d()
 
 def de_flicker_online(get_im, num_slice=100, opts=(0, 0, 0),
                       global_stat=None, filter_s_hsz=(15, 15), filter_t_hsz=2, device='cuda'):
