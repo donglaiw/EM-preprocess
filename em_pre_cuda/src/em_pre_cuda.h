@@ -1,3 +1,10 @@
+/**
+ * Name: em_pre_cuda.h
+ * Author: Matin Raayai Ardakani
+ * Email: raayai.matin@gmail.com
+ * Based on the code from Pytorch's tutorials: https://github.com/pytorch/extension-cpp
+ **********************************************************************************************************************/
+#pragma once
 #include <torch/torch.h>
 #include <vector>
 

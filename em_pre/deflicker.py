@@ -98,7 +98,7 @@ def de_flicker_online(get_im, num_slice=100, opts=(0, 0, 0),
     # e.g. sizeT=7, filterT_hsz=3, mid_r=3
     for i in range(filter_t_hsz + 1):  # 0-3
         # flip the initial frames to pad
-        mean_tensor[:, :, i] = conv2d(_pre_process_ims(get_im(filter_t_hsz - i), global_stat, opts[0]),
+        mean_tensor[:, :, i]= conv2d(_pre_process_ims(get_im(filter_t_hsz - i), global_stat, opts[0]),
                                       spatial_filter, padding=filter_s_hsz)
     for i in range(filter_t_hsz - 1):  # 0-1 -> 4-5
         mean_tensor[:, :, filter_t_hsz + 1 + i] = mean_tensor[:, :, filter_t_hsz - 1 - i].copy()
