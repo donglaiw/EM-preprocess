@@ -9,15 +9,15 @@
 #include <string>
 //TODO: Create a Hashmap that holds the documentation for each function added here.
 
-at::Tensor median_filter(at::Tensor input, at::Tensor filter_rads)
+at::Tensor median_filter(at::Tensor input, int filter_rad)
 {
     CHECK_INPUT(input)
-    CHECK_INPUT(filter_rads)
+    //CHECK_INPUT(filter_rads)
     cudaStream_t stream = 0;
     int32_t halo = 0;
-    //Uncomment when passed the correct header to the function.
+    //TODO: Uncomment when passed the correct header to the function.
     //at::cuda::getDefaultCUDAStream();
-    return cuda_median_3d(input, filter_rads, halo, stream);
+    return cuda_median_3d(input, at::zeros_like(input), input.size(0), input.size(1), input.size(2), filter_rad, halo, stream);
 }
 
 

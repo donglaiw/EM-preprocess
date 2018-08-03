@@ -22,18 +22,22 @@ INPUT_FILE_DIR = 'data.h5'
 OUTPUT_FILE_DIR = 'test_results'
 DATASET_NAME = 'main'
 BATCH_STACK_SIZE = 5
-FILTER_DIMS = np.array([BATCH_STACK_SIZE, 1, 1])
+FILTER_DIMS = 5
 
 def read_input(directory, dataset_name):
-  return np.array(h5py.File(directory)[dataset_name], dtype=np.float32)
+  #return np.array(h5py.File(directory)[dataset_name], dtype=np.float32)
+  out = np.zeros((9, 1024, 1024), dtype = np.float)
+  for i in range(8):
+      out[i, :, :] = np.ones((1024, 1024), dtype = np.float) * i * 20
+  return out
 
 def test_with_sikit(ims, filter_shape):
     return nd.median_filter(ims, filter_shape)
 def test_with_cuda(ims, filter_shape):
     ims_cuda = torch.from_numpy(ims).cuda()
     filter_torch = torch.tensor(filter_shape / 2, device = 'cuda', dtype=torch.float32)
-    output = em_pre_cuda.median_filter(ims_cuda, filter_torch)
-    torch.cuda.synchronize()
+    output = em_pre_cuda.median_filter(ims_cuda,5)
+    print output
     return output.cpu().numpy()
 
 class TestMedian(unittest.TestCase):

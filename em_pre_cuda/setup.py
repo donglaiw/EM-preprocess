@@ -1,3 +1,9 @@
+"""*********************************************************************************************************************
+ * Name: setup.py
+ * Author: Matin Raayai Ardakani
+ * Email: raayai.matin@gmail.com
+ * Setup script for the package em_pre_cuda.
+ ********************************************************************************************************************"""
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 NAME = "em_pre_cuda"
