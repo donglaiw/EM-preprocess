@@ -6,21 +6,16 @@
  * Based on the code from Pytorch's tutorials: https://github.com/pytorch/extension-cpp
  **********************************************************************************************************************/
 #include "em_pre_cuda.h"
-#include <string>
-//TODO: Create a Hashmap that holds the documentation for each function added here.
+//TODO: Create a Hashmap that holds the documentation for each function.
 
-at::Tensor median_filter(at::Tensor input, int filter_rad)
-{
-    CHECK_INPUT(input)
-    //CHECK_INPUT(filter_rads)
-    cudaStream_t stream = 0;
+at::Tensor median_filter(const at::Tensor& imStack, const at::Tensor& filtRads) {
+    CHECK_INPUT_CUDA(imStack);
+    CHECK_INPUT_CPU(filtRads);
     int32_t halo = 0;
-    //TODO: Uncomment when passed the correct header to the function.
-    //at::cuda::getDefaultCUDAStream();
-    return cuda_median_3d(input, at::zeros_like(input), input.size(0), input.size(1), input.size(2), filter_rad, halo, stream);
+    return cuda_median_3d(imStack, filtRads, halo);
 }
 
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  m.def("median_filter", &median_filter, "Applies the 3D median filter to the passed image stack on the gpu.\n:param input The torch tensor (at::Tensor) containing the image stack in the shape [im_x, im_y, batch_idx]. The tensor's dtype must be torch.float32.\n:param filter_rads 3D torch tensor containing each radius of the filter: [rad_x, rad_y, rad_z]. Each radius is the filter's half-dimension. For example, a passed filter array of torch.tensor([3.0, 0.0, 0.0]) will result in torch.tensor([7.0, 1.0, 1.0]).\n:param halo Used in Peta-byte data processing.\n:return The output of the median filter as a torch tensor with the same dimensions as the input.");
+  m.def("median_filter", &median_filter, "CUDA 3D median filter.");
 }

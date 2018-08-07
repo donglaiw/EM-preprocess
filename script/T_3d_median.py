@@ -18,26 +18,29 @@ profiler_cpu = cProfile.Profile()
 profiler_gpu = cProfile.Profile()
 
 #Constants:
-INPUT_FILE_DIR = 'data.h5'
-OUTPUT_FILE_DIR = 'test_results'
+INPUT_FILE_DIR = 'test_data.h5'
+OUTPUT_FILE_DIR = 'Test Results'
 DATASET_NAME = 'main'
 BATCH_STACK_SIZE = 5
 FILTER_DIMS = 5
 
 def read_input(directory, dataset_name):
-  #return np.array(h5py.File(directory)[dataset_name], dtype=np.float32)
-  out = np.zeros((9, 1024, 1024), dtype = np.float)
-  for i in range(8):
-      out[i, :, :] = np.ones((1024, 1024), dtype = np.float) * i * 20
-  return out
+    return np.array(h5py.File(directory)[dataset_name], dtype=np.float32)
+    # out = np.zeros((100, 1000, 1000), dtype = np.float)
+    # for i in range(99):
+    #     out[i, :, :] = np.ones((1000, 1000), dtype = np.float) * i * 2
+    # return out
 
 def test_with_sikit(ims, filter_shape):
-    return nd.median_filter(ims, filter_shape)
+    output = nd.median_filter(ims, filter_shape)
+    print output
+    return output
 def test_with_cuda(ims, filter_shape):
     ims_cuda = torch.from_numpy(ims).cuda()
     filter_torch = torch.tensor(filter_shape / 2, device = 'cuda', dtype=torch.float32)
-    output = em_pre_cuda.median_filter(ims_cuda,5)
-    print output
+    output = em_pre_cuda.median_filter(ims_cuda, torch.tensor([10., 1., 1.], device='cpu', dtype=torch.float32))
+    #print output
+    print "Finished Cuda."
     return output.cpu().numpy()
 
 class TestMedian(unittest.TestCase):
@@ -48,7 +51,7 @@ class TestMedian(unittest.TestCase):
     out_cuda = np.zeros(output_im_shape)
     out_cpu = np.zeros(output_im_shape)
     profiler_cpu.enable()
-    out_cpu = test_with_sikit(input_im_stack, FILTER_DIMS)
+    out_cpu = test_with_sikit(input_im_stack, [10, 1, 1])
     print out_cpu.shape
     profiler_cpu.disable()
     profiler_gpu.enable()

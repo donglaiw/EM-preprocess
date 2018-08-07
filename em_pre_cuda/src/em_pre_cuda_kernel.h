@@ -8,16 +8,18 @@
 #include <ATen/ATen.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include <vector>
-#include <tuple>
 #include "/usr/local/cuda-9.2/samples/common/inc/helper_math.h"
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include <thrust/sort.h>
-#include <thrust/execution_policy.h>
 
-at::Tensor cuda_median_3d(at::Tensor deviceSrc, at::Tensor deviceDst, int dimx, int dimy, int dimz, int radius, int halo, cudaStream_t stream);
+at::Tensor cuda_median_3d(const at::Tensor& imStack, const at::Tensor& filtRads, int32_t halo);
 
-template <typename scalar_t>
+template<typename scalar_t>
 __global__
-void __median_3d(scalar_t* deviceSrc, scalar_t* deviceDst, int dimx, int dimy, int dimz, int radius, int halo);
+void __median_3d(scalar_t* __restrict__ stackIn, 
+    scalar_t* __restrict__ stackOut,
+    int32_t dimX,
+    int32_t dimY,
+    int32_t dimZ,
+    int32_t radX,
+    int32_t radY,
+    int32_t radZ,
+    int32_t halo);
