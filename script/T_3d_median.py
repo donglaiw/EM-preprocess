@@ -25,7 +25,7 @@ BATCH_STACK_SIZE = 5
 FILTER_DIMS = 5
 
 def read_input(directory, dataset_name):
-    return np.array(h5py.File(directory)[dataset_name], dtype=np.float32)
+    return np.array(h5py.File(directory, 'r')[dataset_name], dtype=np.float32)
     # out = np.zeros((100, 1000, 1000), dtype = np.float)
     # for i in range(99):
     #     out[i, :, :] = np.ones((1000, 1000), dtype = np.float) * i * 2
@@ -37,6 +37,7 @@ def test_with_sikit(ims, filter_shape):
     return output
 def test_with_cuda(ims, filter_shape):
     ims_cuda = torch.from_numpy(ims).cuda()
+    print ims_cuda.size()
     filter_torch = torch.tensor(filter_shape / 2, device = 'cuda', dtype=torch.float32)
     output = em_pre_cuda.median_filter(ims_cuda, torch.tensor([10., 1., 1.], device='cpu', dtype=torch.float32))
     #print output
@@ -47,6 +48,7 @@ class TestMedian(unittest.TestCase):
   def test_median(self):
     self.assertTrue(torch.cuda.is_available(), "CUDA-enabled GPU is not available.")
     input_im_stack = read_input(INPUT_FILE_DIR, DATASET_NAME)
+    #input_im_stack = input_im_stack.transpose(1, 2, 0)
     output_im_shape = (input_im_stack.shape[0], input_im_stack.shape[1], input_im_stack.shape[2])
     out_cuda = np.zeros(output_im_shape)
     out_cpu = np.zeros(output_im_shape)
