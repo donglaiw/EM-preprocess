@@ -11,8 +11,7 @@
 at::Tensor median_filter(const at::Tensor& imStack, const at::Tensor& filtRads) {
     CHECK_INPUT_CUDA(imStack);
     CHECK_INPUT_CPU(filtRads);
-    int32_t halo = 0;
-    return cuda_median_3d(imStack, filtRads, halo);
+    return cuda_median_3d(imStack, filtRads);
 }
 
 
