@@ -1,11 +1,12 @@
 /**
- * Name: em_pre_cuda.h
+ * Name: TorchExtension.h
  * Author: Matin Raayai Ardakani
  * Email: raayai.matin@gmail.com
  * Based on the code from Pytorch's tutorials: https://github.com/pytorch/extension-cpp
  **********************************************************************************************************************/
 #pragma once
 #include <torch/torch.h>
+
 at::Tensor cuda_median_3d(const at::Tensor& imStack, const at::Tensor& filtRads);
 
 // NOTE: AT_ASSERT has become AT_CHECK on master after 0.4.

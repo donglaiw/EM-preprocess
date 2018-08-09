@@ -1,11 +1,11 @@
 /**********************************************************************************************************************
- * Name: em_pre_cuda.cpp
+ * Name: TorchExtension.cpp
  * Author: Matin Raayai Ardakani
  * Email: raayai.matin@gmail.com
  * This file contains all the Python function interfaces for the package em_pre_cuda.
  * Based on the code from Pytorch's tutorials: https://github.com/pytorch/extension-cpp
  **********************************************************************************************************************/
-#include "em_pre_cuda.h"
+#include "TorchExtension.h"
 //TODO: Create a Hashmap that holds the documentation for each function.
 
 at::Tensor median_filter(const at::Tensor& imStack, const at::Tensor& filtRads) {

@@ -1,5 +1,5 @@
 /**********************************************************************************************************************
- * Name: em_pre_cuda_kernel.cpp
+ * Name: TorchExtensionKernel.cpp
  * Author: Matin Raayai Ardakani, Tran Minh Quan
  * Email: raayai.matin@gmail.com
  * Where the CUDA magic happens for the em_pre_cuda Python package.
@@ -7,7 +7,7 @@
  * and Tran Minh Quan's 3d_median filter: 
  * https://github.com/tmquan/hetero/blob/ad3c48d1b49b6f79cb06e69ae4199302efd2ffb3/research/ldav14/segment_threshold/median_3d.cu
  **********************************************************************************************************************/
- #include "em_pre_cuda_kernel.h"
+ #include "TorchExtensionKernel.h"
 
 
 // at::TensorAccessor getFiltRadsAccessor(const at::Tensor& filtRads) {
