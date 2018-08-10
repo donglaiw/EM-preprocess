@@ -6,11 +6,12 @@
  ********************************************************************************************************************"""
 
 import cv2
-import numpy as np
-import scipy.ndimage as nd
 import torch
 import em_pre_torch_ext
 from torch.nn.functional import conv2d
+from torch.nn import Conv2d, init
+from torch.nn.functional import pad
+import numpy as np
 
 
 # TODO: Ask Donglai to write a better doc for this.
@@ -42,14 +43,31 @@ def _pre_process(ims, global_stat=None, global_stat_opt=0):
     return ims
 
 
-def _create_filters(filter_s_hsz, filter_t_hsz, opts, device='cuda'):
+def _create_filters(filter_s_hsz, filter_t_hsz, opts):
     spat_size = [x * 2 + 1 for x in filter_s_hsz]
     temp_size = 2 * filter_t_hsz + 1
     if opts[1] == 0:  # mean filter: sum to 1
-        spat_filter = torch.ones(spat_size, device=device).div_(spat_size[0] * spat_size[1])
+        spat_filter = torch.ones(spat_size, device='cuda').div_(spat_size[0] * spat_size[1])
     else:
         raise NotImplementedError('need to implement')
     return spat_filter, temp_size
+
+
+def _conv2d(img, flt_shape, flt_rad):
+    unsqz_im = torch.unsqueeze(torch.unsqueeze(img, 0), 0)
+    # print "filter shape:"
+    pad_t = (flt_rad[0], flt_rad[1], flt_rad[0], flt_rad[1])
+    unsqz_flt = torch.unsqueeze(torch.unsqueeze(flt_shape, 0), 0)
+    pad_img = pad(unsqz_im, pad_t, mode='reflect')
+    output = conv2d(pad_img, unsqz_flt)
+    # m = Conv2d(1, 1, kernel_size=(31, 31)).cuda()
+    # weight = torch.tensor(1. / (flt_shape[0] * flt_shape[1]), device='cuda', dtype=torch.float32)
+    # print weight
+    # init.constant_(m.weight,  weight)
+    # output = torch.squeeze(m(pad_img))
+    # print output.size()
+    # return output
+    return torch.squeeze(output)
 
 
 def _3d_median_filter(ims, filter_shape):
@@ -58,7 +76,7 @@ def _3d_median_filter(ims, filter_shape):
 
 
 def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
-                      global_stat=None, s_flt_rad=(15, 15), t_flt_rad=2):
+                     global_stat=None, s_flt_rad=(15, 15), t_flt_rad=2):
     """
     :param get_im:
     :param num_slice:
@@ -73,27 +91,28 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
     im0 = get_im(0)
     im_size = im0.size()
     spatial_filter, temp_size = _create_filters(s_flt_rad, t_flt_rad, opts)
-    print '1. Attempting global normalization...'
+    print('1. Attempting global normalization...')
     if global_stat is None:
         if opts[0] == 0:
             # stat of the first image
             global_stat = [im0.mean(), im0.std()]
         else:
             raise NotImplementedError('Feature with opts: %d needs to be implemented.' % opts[0])
-    print 'Global normalization complete.'
-    print '2. Attempting local normalization...'
+    print('Global normalization complete.')
+    print('2. Attempting local normalization...')
     mean_tensor = torch.zeros((im_size[0], im_size[1], temp_size), device='cuda')
     # initial chunk
     # e.g. sizeT=7, filterT_hsz=3, mid_r=3
     for i in range(t_flt_rad + 1):  # 0-3
         # flip the initial frames to pad
-        mean_tensor[:, :, i] = conv2d(_pre_process(get_im(t_flt_rad - i), global_stat, opts[0]),
-                                      spatial_filter, padding=s_flt_rad)
+        mean_tensor[:, :, i] = _conv2d(_pre_process(get_im(t_flt_rad - i), global_stat, opts[0]),
+                                       spatial_filter, s_flt_rad)
     for i in range(t_flt_rad - 1):  # 0-1 -> 4-5
-        mean_tensor[:, :, t_flt_rad + 1 + i] = mean_tensor[:, :, t_flt_rad - 1 - i].copy()
+        mean_tensor[:, :, t_flt_rad + 1 + i] = mean_tensor[:, :, t_flt_rad - 1 - i]
     # online change chunk
     im_id = t_flt_rad  # image
     chunk_id = temp_size - 1
+    final_out = np.zeros((im_size[0], im_size[1], num_slice))
     for i in range(num_slice):
         print 'Processing: %s/%s' % (i + 1, num_slice)
         # current frame
@@ -104,7 +123,7 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
             imM = _pre_process(get_im(t_flt_rad + i), global_stat, opts[0])
         else:  # reflection mean
             imM = _pre_process(get_im(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat, opts[0])
-        mean_tensor[:, :, chunk_id] = conv2d(imM, spatial_filter, padding=s_flt_rad)
+        mean_tensor[:, :, chunk_id] = _conv2d(imM, spatial_filter, s_flt_rad)
 
         # local temporal filtering
         if opts[2] == 0:  # median filter
@@ -113,8 +132,9 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
             raise NotImplementedError('need to implement')
 
         filterRD = filterR[:, :, t_flt_rad] - mean_tensor[:, :, im_id]
-        imDiff = conv2d(filterRD, spatial_filter, padding=s_flt_rad)
+        imDiff = _conv2d(filterRD, spatial_filter, s_flt_rad)
         out_im = torch.clamp(im + imDiff, 0, 255).cpu().numpy()
-        cv2.imwrite("output_%s.png" % i, out_im)
+        cv2.imwrite("output_gpu_%d.png" % (i + 1), out_im)
+        final_out[:, :, i] = out_im
         im_id = (im_id + 1) % temp_size
         chunk_id = (chunk_id + 1) % temp_size

@@ -121,7 +121,7 @@ def deflicker_online(getIm, numSlice=100, opts=[0,0,0],
         out_im = np.clip(im+imDiff,0,255).astype(np.uint8)
 
         if output is not None:
-            cv2.imwrite(output%(i), out_im)
+            cv2.imwrite("output_%d.png"% i, out_im)
         else:
             out[:,:,i] = out_im
 
