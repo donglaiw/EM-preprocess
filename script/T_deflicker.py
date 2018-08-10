@@ -7,6 +7,7 @@ import em_pre_cuda.deflicker as dfkr_gpu
 import cv2
 from T_util import writeh5
 import cProfile
+import unittest
 
 
 def test_snemi():
@@ -27,10 +28,11 @@ def test_snemi():
     out_cpu = dfkr_cpu.deflicker_online(getN_np, opts=[0, 0, 0], globalStat=[150, -1], filterS_hsz=[15,15], filterT_hsz=2)
     cpu_profile.disable()
     gpu_profile.enable()
-    out_gpu = dfkr_gpu.deflicker_online(getN_cuda, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=(15, 15), t_flt_rad=2)
+    out_gpu = dfkr_gpu.deflicker_online(getN_cuda, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2)
     gpu_profile.disable()
     for i in range(100):
         cv2.imwrite("output_cpu%d.png" % i, out_cpu[:, :, i])
+        cv2.imwrite("output_gpu%d.png" % i, out_gpu[:, :, i])
     #writeh5('snemi_df150_online_cpu.h5', 'main', out_cpu)
     #writeh5('snemi_df150_online_gpu.h5', 'main', out_gpu)
     cpu_profile.print_stats()
