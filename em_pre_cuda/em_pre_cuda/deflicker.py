@@ -12,6 +12,12 @@ import numpy as np
 
 
 def _glob_normalization(im0, global_stat, opt):
+    """
+    :param im0:
+    :param global_stat:
+    :param opt:
+    :return:
+    """
     print('1. Starting global normalization...')
     if global_stat is None:
         if opt == 0:
@@ -61,43 +67,30 @@ def _make_spat_kernel(radius, opt):
     """
     diameter = 2 * radius + 1
     if opt == 0:
-        kernel = torch.ones((diameter, diameter), device='cuda').div_(diameter ** 2)
+        kernel = torch.ones([diameter, ] * 2, device='cuda').div_(diameter ** 2)
         kernel = torch.unsqueeze(torch.unsqueeze(kernel, 0), 0)
     else:
         raise NotImplementedError("Feature with opt# %d hasn't been implemented." % opt)
     return kernel
 
 
-def _create_filters(filter_s_hsz, filter_t_hsz, opt):
-    s_flt = [x * 2 + 1 for x in filter_s_hsz]
-    temp_size = 2 * filter_t_hsz + 1
-    if opt == 0:  # mean filter: sum to 1
-        spat_filter = torch.ones(s_flt, device='cuda').div_(s_flt[0] * s_flt[1])
-    else:
-        raise NotImplementedError('need to implement')
-    return spat_filter, temp_size
+def _make_temp_window(radius):
+    return torch.tensor([1, 1, radius], device='cpu', dtype=torch.float32)
 
 
-def _2d_mean_filter(img, flt_shape, flt_rad):
+def _spatial_filter(img, kernel, flt_rad):
     unsqz_im = torch.unsqueeze(torch.unsqueeze(img, 0), 0)
-    # print "filter shape:"
     pad_t = (flt_rad,) * 4
-    unsqz_flt = torch.unsqueeze(torch.unsqueeze(flt_shape, 0), 0)
     pad_img = pad(unsqz_im, pad_t, mode='reflect')
-    output = conv2d(pad_img, unsqz_flt)
-    # m = Conv2d(1, 1, kernel_size=(31, 31)).cuda()
-    # weight = torch.tensor(1. / (flt_shape[0] * flt_shape[1]), device='cuda', dtype=torch.float32)
-    # print weight
-    # init.constant_(m.weight,  weight)
-    # output = torch.squeeze(m(pad_img))
-    # print output.size()
-    # return output
+    output = conv2d(pad_img, kernel)
     return torch.squeeze(output)
 
 
-def _3d_median_filter(ims, t_rad):
-    flt = torch.tensor([1, 1, t_rad], device='cpu', dtype=torch.float32)
-    return torch_ext.median_filter(ims, flt)
+def _temporal_filter(ims, window, opt):
+    if opt == 0:  # median filter
+        return torch_ext.median_filter(ims, window)
+    else:
+        raise NotImplementedError('Feature with opts: %d needs to be implemented.' % opt)
 
 
 def deflicker_online(im_getter, num_slice=100, opts=(0, 0, 0), global_stat=None, s_flt_rad=15, t_flt_rad=2):
@@ -113,6 +106,7 @@ def deflicker_online(im_getter, num_slice=100, opts=(0, 0, 0), global_stat=None,
     # filters: spatial=(filterS_hsz, opts[1]), temporal=(filterT_hsz, opts[2])
     # seq stats: im_size, globalStat, globalStatOpt
     spat_kernel = _make_spat_kernel(s_flt_rad, opts[1])
+    temp_window = _make_temp_window(t_flt_rad)
     t_flt_diam = 2 * t_flt_rad + 1
     im0 = im_getter(0)
     im_size = im0.size()
@@ -125,7 +119,7 @@ def deflicker_online(im_getter, num_slice=100, opts=(0, 0, 0), global_stat=None,
     for i in range(t_flt_rad + 1):  # 0-3
         # flip the initial frames to pad
         pre_img = _pre_process(im_getter(t_flt_rad - i), global_stat, opts[0])
-        mean_tensor[:, :, i] = _2d_mean_filter(pre_img, spat_kernel, s_flt_rad)
+        mean_tensor[:, :, i] = _spatial_filter(pre_img, spat_kernel, s_flt_rad)
     for i in range(t_flt_rad - 1):  # 0-1 -> 4-5
         mean_tensor[:, :, t_flt_rad + 1 + i] = mean_tensor[:, :, t_flt_rad - 1 - i]
     # online change chunk
@@ -142,16 +136,12 @@ def deflicker_online(im_getter, num_slice=100, opts=(0, 0, 0), global_stat=None,
             imM = _pre_process(im_getter(t_flt_rad + i), global_stat, opts[0])
         else:  # reflection mean
             imM = _pre_process(im_getter(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat, opts[0])
-        mean_tensor[:, :, chunk_id] = _2d_mean_filter(imM, spat_kernel, s_flt_rad)
+        mean_tensor[:, :, chunk_id] = _spatial_filter(imM, spat_kernel, s_flt_rad)
 
-        # local temporal filtering
-        if opts[2] == 0:  # median filter
-            filterR = _3d_median_filter(mean_tensor, [1, 1, t_flt_diam])
-        else:
-            raise NotImplementedError('need to implement')
+        filterR = _temporal_filter(mean_tensor, temp_window, opts[2])
 
         filterRD = filterR[:, :, t_flt_rad] - mean_tensor[:, :, im_id]
-        imDiff = _2d_mean_filter(filterRD, spat_kernel, s_flt_rad)
+        imDiff = _spatial_filter(filterRD, spat_kernel, s_flt_rad)
         out_im = torch.clamp(im + imDiff, 0, 255).cpu().numpy()
         final_out[:, :, i] = out_im
         im_id = (im_id + 1) % t_flt_diam
