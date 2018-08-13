@@ -17,26 +17,28 @@ def test_snemi():
     cpu_profile = cProfile.Profile()
     gpu_profile = cProfile.Profile()
 
-
     # online version
-    def getN_np(i):
-        return ims_np[i]
-    def getN_cuda(i):
-        return ims_torch[i]
+    def get_n_np(idx):
+        return ims_np[idx]
+
+    def get_n_cuda(idx):
+        return ims_torch[idx]
 
     cpu_profile.enable()
-    out_cpu = dfkr_cpu.deflicker_online(getN_np, opts=[0, 0, 0], globalStat=[150, -1], filterS_hsz=[15,15], filterT_hsz=2)
+    out_cpu = dfkr_cpu.deflicker_online(get_n_np, opts=[0, 0, 0], globalStat=[150, -1], filterS_hsz=[15, 15],
+                                        filterT_hsz=2)
     cpu_profile.disable()
     gpu_profile.enable()
-    out_gpu = dfkr_gpu.deflicker_online(getN_cuda, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2)
+    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2)
     gpu_profile.disable()
+    torch.cuda.empty_cache()
     for i in range(100):
         cv2.imwrite("output_cpu%d.png" % i, out_cpu[:, :, i])
         cv2.imwrite("output_gpu%d.png" % i, out_gpu[:, :, i])
-    #writeh5('snemi_df150_online_cpu.h5', 'main', out_cpu)
-    #writeh5('snemi_df150_online_gpu.h5', 'main', out_gpu)
-    cpu_profile.print_stats()
-    gpu_profile.print_stats()
+    # writeh5('snemi_df150_online_cpu.h5', 'main', out_cpu)
+    # writeh5('snemi_df150_online_gpu.h5', 'main', out_gpu)
+    cpu_profile.print_stats(sort=1)
+    gpu_profile.print_stats(sort=1)
     cpu_profile.dump_stats("cpu.profile")
     gpu_profile.dump_stats("gpu.profile")
 
