@@ -8,7 +8,6 @@
 #include <ATen/ATen.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include "/usr/local/cuda/samples/common/inc/helper_math.h"
 #define BLOCK_DIM_LEN 8
 #define MAX_GPU_ARRAY_LEN 200
 

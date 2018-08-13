@@ -7,7 +7,6 @@ import em_pre_cuda.deflicker as dfkr_gpu
 import cv2
 from T_util import writeh5
 import cProfile
-import unittest
 
 
 def test_snemi():
