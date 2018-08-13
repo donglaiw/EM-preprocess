@@ -119,7 +119,7 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0), global_stat=None, s_
         if write_dir is None:
             final_out[:, :, i] = out_im
         else:
-            cv2.imwrite("deflicker_gpu_%d" % (i + 1), out_im)
+            cv2.imwrite(write_dir % (i + 1), out_im)
         im_id = (im_id + 1) % t_flt_diam
         chunk_id = (chunk_id + 1) % t_flt_diam
     _print("Local normalization complete.")

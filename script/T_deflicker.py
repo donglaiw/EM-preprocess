@@ -28,7 +28,8 @@ def test_snemi():
                                         filterT_hsz=2)
     cpu_profile.disable()
     gpu_profile.enable()
-    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2)
+    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2,
+                                        write_dir="output_gpu_test_%02d.png")
     gpu_profile.disable()
     torch.cuda.empty_cache()
     for i in range(100):
