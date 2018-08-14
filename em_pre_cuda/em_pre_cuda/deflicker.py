@@ -13,9 +13,8 @@ from torch.nn.functional import pad
 import numpy as np
 
 
-# TODO: Ask Donglai to write a better doc for this.
+def _pre_process(ims, global_stat_sz, mask_thres, global_stat=None, global_stat_opt=0):
 
-def _pre_process(ims, global_stat=None, global_stat_opt=0):
     if global_stat_opt == 0:
         # mean/std
         if global_stat is not None:
@@ -29,6 +28,21 @@ def _pre_process(ims, global_stat=None, global_stat_opt=0):
             else:
                 if global_stat[0] > 0:
                     ims.sub_(mm).add_(global_stat[0])
+
+    elif global_stat_opt == 1:
+        if global_stat is not None:
+            print ims.size()
+            ims_copy = ims[::global_stat_sz, ::global_stat_sz]
+            if mask_thres[0] is not None:
+                ims_copy = ims_copy[ims_copy > mask_thres[0]]
+            if mask_thres[1] is not None:
+                ims_copy = ims_copy[ims_copy < mask_thres[1]]
+            ims.sub_(ims_copy.median()).add_(global_stat[0])
+            print (ims_copy.median())
+        if mask_thres[0] is not None:  # for artifact/boundary
+            ims[ims < mask_thres[0]] = mask_thres[0]
+        if mask_thres[1] is not None:  # for blood vessel
+            ims[ims > mask_thres[1]] = mask_thres[1]
     else:
         raise NotImplementedError("The passed global stat op argument (%d) is not implemented." % global_stat_opt)
     return ims
@@ -45,7 +59,13 @@ def _temporal_filter(ims, window):
     return em_pre_torch_ext.median_filter(ims, window)
 
 
-def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0), global_stat=None, s_flt_rad=15, t_flt_rad=2, verbose=True,
+def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
+                     mask_thres=(10, 245),
+                     global_stat_sz=10,
+                     global_stat=None,
+                     s_flt_rad=15,
+                     t_flt_rad=2,
+                     verbose=True,
                      write_dir=None):
     # filters: spatial=(filterS_hsz, opts[1]), temporal=(filterT_hsz, opts[2])
     # seq stats: im_size, globalStat, globalStatOpt
@@ -85,8 +105,8 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0), global_stat=None, s_
     # e.g. sizeT=7, filterT_hsz=3, mid_r=3
     for i in range(t_flt_rad + 1):  # 0-3
         # flip the initial frames to pad
-        mean_tensor[:, :, i] = _spatial_filter(_pre_process(get_im(t_flt_rad - i), global_stat, opts[0]),
-                                               spatial_kernel, spat_padding)
+        mean_tensor[:, :, i] = _spatial_filter(_pre_process(get_im(t_flt_rad - i), global_stat_sz, mask_thres,
+                                                            global_stat, opts[0]), spatial_kernel, spat_padding)
     for i in range(t_flt_rad - 1):  # 0-1 -> 4-5
         mean_tensor[:, :, t_flt_rad + 1 + i] = mean_tensor[:, :, t_flt_rad - 1 - i]
     # online change chunk
@@ -102,9 +122,10 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0), global_stat=None, s_
 
         # last frame needed for temporal filter
         if t_flt_rad + i < num_slice:
-            im_m = _pre_process(get_im(t_flt_rad + i), global_stat, opts[0])
+            im_m = _pre_process(get_im(t_flt_rad + i), global_stat_sz, mask_thres, global_stat, opts[0])
         else:  # reflection mean
-            im_m = _pre_process(get_im(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat, opts[0])
+            im_m = _pre_process(get_im(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat_sz, mask_thres,
+                                global_stat, opts[0])
         mean_tensor[:, :, chunk_id] = _spatial_filter(im_m, spatial_kernel, spat_padding)
 
         # local temporal filtering

@@ -19,7 +19,7 @@ def deflicker_4_3():
         return torch.from_numpy(im_np)
 
     gpu_profile.enable()
-    dfkr_gpu.deflicker_online(get_im, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2,
+    dfkr_gpu.deflicker_online(get_im, opts=(1, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2,
                               write_dir=OUT_DIR)
     gpu_profile.disable()
     torch.cuda.empty_cache()

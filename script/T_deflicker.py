@@ -28,15 +28,12 @@ def test_snemi():
                                         filterT_hsz=2)
     cpu_profile.disable()
     gpu_profile.enable()
-    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, opts=(0, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2,
-                                        write_dir="output_gpu_test_%02d.png")
+    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, opts=(1, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2,
+                                        write_dir="output_gpu_%02d.png", )
     gpu_profile.disable()
     torch.cuda.empty_cache()
     for i in range(100):
         cv2.imwrite("output_cpu%d.png" % i, out_cpu[:, :, i])
-        cv2.imwrite("output_gpu%d.png" % i, out_gpu[:, :, i])
-    # writeh5('snemi_df150_online_cpu.h5', 'main', out_cpu)
-    # writeh5('snemi_df150_online_gpu.h5', 'main', out_gpu)
     cpu_profile.print_stats(sort=1)
     gpu_profile.print_stats(sort=1)
     cpu_profile.dump_stats("cpu.profile")
