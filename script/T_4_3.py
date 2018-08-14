@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 import em_pre_cuda.deflicker as dfkr_gpu
 import cv2
 import cProfile
@@ -16,7 +15,7 @@ def deflicker_4_3():
 
     def get_im(idx):
         im_np = cv2.imread(IMG_DIR % int(idx_array[idx]))
-        return torch.from_numpy(im_np)
+        return torch.from_numpy(im_np).cuda()
 
     gpu_profile.enable()
     dfkr_gpu.deflicker_online(get_im, opts=(1, 0, 0), global_stat=(150, -1), s_flt_rad=15, t_flt_rad=2,
