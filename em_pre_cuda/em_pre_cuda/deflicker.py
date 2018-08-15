@@ -31,14 +31,12 @@ def _pre_process(ims, global_stat_sz, mask_thres, global_stat=None, global_stat_
 
     elif global_stat_opt == 1:
         if global_stat is not None:
-            print ims.size()
             ims_copy = ims[::global_stat_sz, ::global_stat_sz]
             if mask_thres[0] is not None:
                 ims_copy = ims_copy[ims_copy > mask_thres[0]]
             if mask_thres[1] is not None:
                 ims_copy = ims_copy[ims_copy < mask_thres[1]]
             ims.sub_(ims_copy.median()).add_(global_stat[0])
-            print (ims_copy.median())
         if mask_thres[0] is not None:  # for artifact/boundary
             ims[ims < mask_thres[0]] = mask_thres[0]
         if mask_thres[1] is not None:  # for blood vessel
