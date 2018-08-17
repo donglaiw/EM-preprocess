@@ -43,7 +43,7 @@ def medfilt2d(np.ndarray[double, ndim=3] im not None,
     cdef int c = im.shape[2]
     medianFilter(&im[0,0,0], h, w, c, win_hsize)
 
-def warpback_flow(img, flow, opt_interp=0, opt_border=0):
+def warpback_image(img, flow, opt_interp=0, opt_border=0):
     # input: im2, flow(im1->im2)
     # output: warped im2 (similar to im1)
     # flow: h*w*2
@@ -208,7 +208,7 @@ def coarse2fine_flow_large(np.ndarray[double, ndim=3] Im1 not None,
                     im_indW += range(i*ww,i*ww+flow_pad)
                 else: # replicate pad
                     im_indW += [im_indW[-1]]*flow_pad
-                warpI2[np.ix_(out_indH,out_indW,range(c))] = np.clip(255*warp_flow(Im2[im_indH][:,im_indW], \
+                warpI2[np.ix_(out_indH,out_indW,range(c))] = np.clip(255*warpback_image(Im2[im_indH][:,im_indW], \
                                                          out_flow[im_indH][:,im_indW]*warp_step, 
                                                          opt_interp=1, opt_border=1).reshape((len(im_indH),len(im_indW),c))[flow_pad:-flow_pad, flow_pad:-flow_pad],0,255)
 

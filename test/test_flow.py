@@ -58,7 +58,7 @@ def check_warp_mf():
             nSORIterations, colType, warp_step, 1, 2, 0.5)
         cv2.imwrite('test/im2Wm_'+str(warp_step)+'_05.png',np.uint8(255*im2W2m[0,:,:,0]))
         """
-def check_warp_flow():
+def check_warpback_image():
     im1 = cv2.imread('test/im1.png',cv2.IMREAD_GRAYSCALE)[:,:,None].astype(float) / 255.
     im2 = cv2.imread('test/im2.png',cv2.IMREAD_GRAYSCALE)[:,:,None].astype(float) / 255.
 
@@ -71,7 +71,7 @@ def check_warp_flow():
         nSORIterations, colType, warp_step, medfilt_hsz)
 
     flow = np.stack([u,v],axis=2).astype(np.float32)
-    im2W2 = em_pre.warp_flow(im2[:,:,0], flow, opt_interp=1, opt_border=2)
+    im2W2 = em_pre.warpback_image(im2[:,:,0], flow, opt_interp=1, opt_border=2)
     cv2.imwrite('test/im2Wm_byflow.png',np.uint8(255*im2W2))
     #cv2.imwrite('test/im2Wm_bycpp.png',np.uint8(255*im2W))
 
@@ -94,7 +94,7 @@ def check_flow_large():
     cv2.imwrite('test/im2Wm_byflow_large_'+str(flow_pad)+'.png',im2W)
 
     flow = np.stack([u,v],axis=2).astype(np.float32)
-    im2W2 = em_pre.warp_flow(im2[:,:,0], flow, opt_interp=1, opt_border=1)
+    im2W2 = em_pre.warpback_image(im2[:,:,0], flow, opt_interp=1, opt_border=1)
     cv2.imwrite('test/im2Wm_byflow_large2.png',np.uint8(255*im2W2))
     #cv2.imwrite('test/im2Wm_bycpp.png',np.uint8(255*im2W))
 
@@ -125,5 +125,5 @@ if __name__ == '__main__':
     #getData()
     #check_warp_mf()
     #unittest.main()
-    #check_warp_flow()
+    #check_warpback_image()
     check_flow_large()
