@@ -1,5 +1,10 @@
 # Toolbox for data preprocess
 
+## Installation
+```
+conda env create -f requirement.yml -n em-pre
+python setup.py install
+```
 ## Functionalities
 - deflicker: smooth intensity changes over space and slices
 
