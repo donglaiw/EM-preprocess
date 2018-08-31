@@ -5,45 +5,55 @@
  * De-flickering algorithm implemented using Pytorch built-in functions and Pytorch extensions.
  ********************************************************************************************************************"""
 
+
 import cv2
 import torch
 import em_pre_torch_ext
-from torch.nn.functional import conv2d
-from torch.nn.functional import pad
+from torch.nn.functional import conv2d, pad
 import numpy as np
 
 
-def _pre_process(ims, global_stat_sz, mask_thres, global_stat=None, global_stat_opt=0):
+def _pre_process(image, global_stat, method='naive', sampling_step=10, mask_thres=(10, 245)):
+    """TODO
+    :param image: the desired image as a Pytorch Tensor.
+    :param global_stat: A two element tuple containing info regarding the desired global statistic of the image stack,
+    the first element being the mean and the second being the std.
+    :param method: the desired method of pre-processing:<ol><li>naive</li><li>threshold</li></ol>.
+    :param sampling_step: step size used to sample the image for the threshold method.
+    :param mask_thres: A two element tuple containing both minimum and maximum pixel threshold values for the threshold
+    method.
+    :return: the pre-processed image.
+    """
 
-    if global_stat_opt == 0:
+    if method == 'naive':
         # mean/std
         if global_stat is not None:
-            mm = ims.mean(dim=0).mean(dim=0)
+            mm = image.mean(dim=0).mean(dim=0)
             if global_stat[1] > 0:
-                tmp_std = ims.std().item()
+                tmp_std = image.std().item()
                 if tmp_std < 1e-3:
-                    ims.sub_(mm).add_(global_stat[0])
+                    image.sub_(mm).add_(global_stat[0])
                 else:
-                    ims.sub_(mm).div_(tmp_std).mul_(global_stat[1]).add_(global_stat[0])
+                    image.sub_(mm).div_(tmp_std).mul_(global_stat[1]).add_(global_stat[0])
             else:
                 if global_stat[0] > 0:
-                    ims.sub_(mm).add_(global_stat[0])
+                    image.sub_(mm).add_(global_stat[0])
 
-    elif global_stat_opt == 1:
+    elif method == 'threshold':
         if global_stat is not None:
-            ims_copy = ims[::global_stat_sz, ::global_stat_sz]
+            im_copy = image[::sampling_step, ::sampling_step]
             if mask_thres[0] is not None:
-                ims_copy = ims_copy[ims_copy > mask_thres[0]]
+                im_copy = im_copy[im_copy > mask_thres[0]]
             if mask_thres[1] is not None:
-                ims_copy = ims_copy[ims_copy < mask_thres[1]]
-            ims.sub_(ims_copy.median()).add_(global_stat[0])
+                im_copy = im_copy[im_copy < mask_thres[1]]
+            image.sub_(im_copy.median()).add_(global_stat[0])
         if mask_thres[0] is not None:  # for artifact/boundary
-            ims[ims < mask_thres[0]] = mask_thres[0]
+            image[image < mask_thres[0]] = mask_thres[0]
         if mask_thres[1] is not None:  # for blood vessel
-            ims[ims > mask_thres[1]] = mask_thres[1]
+            image[image > mask_thres[1]] = mask_thres[1]
     else:
-        raise NotImplementedError("The passed global stat op argument (%d) is not implemented." % global_stat_opt)
-    return ims
+        raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
+    return image
 
 
 def _spatial_filter(img, kernel, padding):
@@ -56,15 +66,45 @@ def _spatial_filter(img, kernel, padding):
 def _temporal_filter(ims, window):
     return em_pre_torch_ext.median_filter(ims, window)
 
+def _create_temporal_kernel(method, radius):
+    if method == 'median':
+        return torch.tensor([0, 0, radius], device='cpu', dtype=torch.float32)
+    else:
+        raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
 
-def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
-                     mask_thres=(10, 245),
-                     global_stat_sz=10,
-                     global_stat=None,
-                     s_flt_rad=15,
-                     t_flt_rad=2,
+def _create_spatial_kernel(method, diam):
+    if method == 'mean':  # mean filter: sum to 1
+        spatial_kernel = torch.ones((diam, ) * 2, device='cuda').div_(diam ** 2)
+        # Un-squeeze the kernel twice for Pytorch's conv2d function.
+        return torch.unsqueeze(torch.unsqueeze(spatial_kernel, 0), 0)
+    else:
+        raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
+
+def deflicker_online(get_im, num_slice=100, global_stat=None,
+                     pre_proc_method='naive', sampling_step=10, mask_thres=(10, 245),
+                     spat_flt_method='mean', s_flt_rad=15,
+                     temp_flt_method='median', t_flt_rad=2,
                      verbose=True,
                      write_dir=None):
+    """
+    A sequential implementation of the de-flickering algorithm on CUDA.
+    :param get_im: Image getter function. Should take the desired index as argument and return its corresponding image
+    as a Pytorch CUDA Tensor.
+    :param num_slice: Number of image slices to be de-flickered.
+    :param global_stat: The desired global statistics of the image stack. Is a two element tuple in the form of
+    (global_mean, global_std).
+    :param pre_proc_method: The method of pre-processing to be applied to individual images. See _pre_process for more
+    info on each option.
+    :param sampling_step: Refer to _pre_process.
+    :param mask_thres: Refer to _pre_process.
+    :param spat_flt_method:
+    :param s_flt_rad: The radius of the spatial filter.
+    :param temp_flt_method: The method of temporal filtering applied.
+    :param t_flt_rad: The radius of the temporal filter.
+    :param verbose: Verbosity level.
+    :param write_dir: Whether to save individual images to disk straight away after de-flickering after each iteration.
+    :return: The de-flickered image as a Pytorch CPU Tensor if write_dir is None. Else, None.
+    """
     # filters: spatial=(filterS_hsz, opts[1]), temporal=(filterT_hsz, opts[2])
     # seq stats: im_size, globalStat, globalStatOpt
 
@@ -75,36 +115,32 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
 
     # Temporal window initialization:
     t_flt_diam = 2 * t_flt_rad + 1
-    temporal_filter = torch.tensor([0, 0, t_flt_rad], device='cpu', dtype=torch.float32)
+    temporal_filter = _create_temporal_kernel(temp_flt_method, t_flt_rad)
 
     # Spatial Filter Kernel/Padding Creation:
     spat_padding = (s_flt_rad, ) * 4
     spat_flt_diam = 2 * s_flt_rad + 1
-    if opts[1] == 0:  # mean filter: sum to 1
-        spatial_kernel = torch.ones((spat_flt_diam, ) * 2, device='cuda').div_(spat_flt_diam ** 2)
-        # Un-squeeze the kernel twice for Pytorch's conv2d function.
-        spatial_kernel = torch.unsqueeze(torch.unsqueeze(spatial_kernel, 0), 0)
-    else:
-        raise NotImplementedError('need to implement')
+    spatial_kernel = _create_spatial_kernel(spat_flt_method, spat_flt_diam)
 
-    _print('1. Attempting global normalization...')
+    _print('1. Starting global normalization...')
     im0 = get_im(0)
     im_size = im0.size()
     if global_stat is None:
-        if opts[0] == 0:
+        if pre_proc_method == 'naive':
             # stat of the first image
             global_stat = [im0.mean(), im0.std()]
         else:
-            raise NotImplementedError('Feature with opts: %d needs to be implemented.' % opts[0])
+            raise NotImplementedError('Feature with opts: %d needs to be implemented.' % pre_proc_method)
     _print('Global normalization complete.')
-    _print('2. Attempting local normalization...')
+    _print('2. Starting local normalization...')
     mean_tensor = torch.zeros((im_size[0], im_size[1], t_flt_diam), device='cuda')
     # initial chunk
     # e.g. sizeT=7, filterT_hsz=3, mid_r=3
     for i in range(t_flt_rad + 1):  # 0-3
         # flip the initial frames to pad
-        mean_tensor[:, :, i] = _spatial_filter(_pre_process(get_im(t_flt_rad - i), global_stat_sz, mask_thres,
-                                                            global_stat, opts[0]), spatial_kernel, spat_padding)
+        mean_tensor[:, :, i] = _spatial_filter(
+            _pre_process(get_im(t_flt_rad - i), global_stat, pre_proc_method, sampling_step, mask_thres),
+            spatial_kernel, spat_padding)
     for i in range(t_flt_rad - 1):  # 0-1 -> 4-5
         mean_tensor[:, :, t_flt_rad + 1 + i] = mean_tensor[:, :, t_flt_rad - 1 - i]
     # online change chunk
@@ -112,22 +148,22 @@ def deflicker_online(get_im, num_slice=100, opts=(0, 0, 0),
     chunk_id = t_flt_diam - 1
     if write_dir is None:
         final_out = np.zeros((im_size[0], im_size[1], num_slice))
-    _print('Processing:')
+    print('Processing:')
     for i in range(num_slice):
-        print '%s/%s' % (i + 1, num_slice)
+        print('%s/%s' % (i + 1, num_slice))
         # current frame
-        im = _pre_process(get_im(i), global_stat, opts[0])
+        im = _pre_process(get_im(i), global_stat, pre_proc_method, sampling_step, mask_thres)
 
         # last frame needed for temporal filter
         if t_flt_rad + i < num_slice:
-            im_m = _pre_process(get_im(t_flt_rad + i), global_stat_sz, mask_thres, global_stat, opts[0])
+            im_m = _pre_process(get_im(t_flt_rad + i), global_stat, pre_proc_method, sampling_step, mask_thres)
         else:  # reflection mean
-            im_m = _pre_process(get_im(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat_sz, mask_thres,
-                                global_stat, opts[0])
+            im_m = _pre_process(get_im(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat, pre_proc_method,
+                                sampling_step, mask_thres)
         mean_tensor[:, :, chunk_id] = _spatial_filter(im_m, spatial_kernel, spat_padding)
 
         # local temporal filtering
-        if opts[2] == 0:  # median filter
+        if temp_flt_method == 'median':  # median filter
             filter_r = _temporal_filter(mean_tensor, temporal_filter)
         else:
             raise NotImplementedError('need to implement')
