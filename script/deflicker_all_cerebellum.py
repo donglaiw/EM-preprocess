@@ -70,7 +70,7 @@ def deflicker_cerebellum():
         return slice_gpu
 
     profiler.enable()
-    dfkr_gpu.deflicker_online(get_slice, len(idx_array),
+    dfkr_gpu.deflicker_online(get_slice, range(len(idx_array)),
                               global_stat=(150, -1),
                               pre_proc_method='threshold',
                               s_flt_rad=15,

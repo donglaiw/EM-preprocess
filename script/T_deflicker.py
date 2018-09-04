@@ -50,7 +50,7 @@ def test_snemi():
     cpu_profile.disable()
     # em_pre_cuda.deflicker test:
     gpu_profile.enable()
-    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, num_slice=100,
+    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, slice_range=range(0,100),
                                         pre_proc_method='threshold',
                                         global_stat=(150, -1), 
                                         s_flt_rad=15, 

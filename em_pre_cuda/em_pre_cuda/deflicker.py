@@ -5,7 +5,6 @@
  * De-flickering algorithm implemented using Pytorch built-in functions and Pytorch extensions.
  ********************************************************************************************************************"""
 
-
 import cv2
 import torch
 import em_pre_torch_ext
@@ -62,11 +61,13 @@ def _spatial_filter(img, kernel, padding):
     output = conv2d(pad_img, kernel)
     return torch.squeeze(output)
 
+
 def _temporal_filter(ims, window, method):
     if method == 'median':
         return em_pre_torch_ext.median_filter(ims, window)
     else:
         raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
+
 
 def _create_t_flt_window(method, radius):
     if method == 'median':
@@ -74,15 +75,17 @@ def _create_t_flt_window(method, radius):
     else:
         raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
 
+
 def _create_spatial_kernel(method, diam):
     if method == 'mean':  # mean filter: sum to 1
-        spatial_kernel = torch.ones((diam, ) * 2, device='cuda').div_(diam ** 2)
+        spatial_kernel = torch.ones((diam,) * 2, device='cuda').div_(diam ** 2)
         # Un-squeeze the kernel twice for Pytorch's conv2d function.
         return torch.unsqueeze(torch.unsqueeze(spatial_kernel, 0), 0)
     else:
         raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
 
-def deflicker_online(get_im, num_slice=100, global_stat=None,
+
+def deflicker_online(get_im, slice_range=None, global_stat=None,
                      pre_proc_method='naive', sampling_step=10, mask_thres=(10, 245),
                      spat_flt_method='mean', s_flt_rad=15,
                      temp_flt_method='median', t_flt_rad=2,
@@ -92,7 +95,7 @@ def deflicker_online(get_im, num_slice=100, global_stat=None,
     A sequential implementation of the de-flickering algorithm on CUDA.
     :param get_im: Image getter function. Should take the desired index as argument and return its corresponding image
     as a Pytorch CUDA Tensor.
-    :param num_slice: Number of image slices to be de-flickered.
+    :param slice_range: Number of image slices to be de-flickered.
     :param global_stat: The desired global statistics of the image stack. Is a two element tuple in the form of
     (global_mean, global_std).
     :param pre_proc_method: The method of pre-processing to be applied to individual images. See _pre_process for more
@@ -107,10 +110,14 @@ def deflicker_online(get_im, num_slice=100, global_stat=None,
     :param write_dir: Whether to save individual images to disk straight away after de-flickering after each iteration.
     :return: The de-flickered image as a Pytorch CPU Tensor if write_dir is None. Else, None.
     """
+
     # filters: spatial=(filterS_hsz, opts[1]), temporal=(filterT_hsz, opts[2])
     # seq stats: im_size, globalStat, globalStatOpt
 
     # Verbose printing:
+    if slice_range is None:
+        slice_range = range(0, 100)
+
     def _print(content):
         if verbose:
             print(content)
@@ -120,7 +127,7 @@ def deflicker_online(get_im, num_slice=100, global_stat=None,
     temp_flt_window = _create_t_flt_window(temp_flt_method, t_flt_rad)
 
     # Spatial Filter Kernel/Padding Creation:
-    spat_padding = (s_flt_rad, ) * 4
+    spat_padding = (s_flt_rad,) * 4
     spat_flt_diam = 2 * s_flt_rad + 1
     spatial_kernel = _create_spatial_kernel(spat_flt_method, spat_flt_diam)
 
@@ -148,19 +155,22 @@ def deflicker_online(get_im, num_slice=100, global_stat=None,
     # online change chunk
     im_id = t_flt_rad  # image
     chunk_id = t_flt_diam - 1
+    num_slices = len(slice_range)
     if write_dir is None:
-        final_out = np.zeros((im_size[0], im_size[1], num_slice))
+        final_out = np.zeros((im_size[0], im_size[1], num_slices))
     print('Processing:')
-    for i in range(num_slice):
-        print('%s/%s' % (i + 1, num_slice))
+
+    for i in slice_range:
+        print('%s/%s' % (i + 1, num_slices))
         # current frame
         im = _pre_process(get_im(i), global_stat, pre_proc_method, sampling_step, mask_thres)
 
         # last frame needed for temporal filter
-        if t_flt_rad + i < num_slice:
+        if t_flt_rad + i < num_slices:
             im_m = _pre_process(get_im(t_flt_rad + i), global_stat, pre_proc_method, sampling_step, mask_thres)
         else:  # reflection mean
-            im_m = _pre_process(get_im(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat, pre_proc_method,
+            im_m = _pre_process(get_im(num_slices - 1 - t_flt_rad + (num_slices - 1 - i)), global_stat,
+                                pre_proc_method,
                                 sampling_step, mask_thres)
         mean_tensor[:, :, chunk_id] = _spatial_filter(im_m, spatial_kernel, spat_padding)
         del im_m
