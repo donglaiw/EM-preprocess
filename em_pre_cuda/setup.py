@@ -4,7 +4,7 @@ import numpy as np
 import glob
 
 NAME = "em_pre_cuda"
-VERSION = "0.0.1"
+VERSION = "0.0.4"
 DESCR = "C++/CUDA implementation of Deformation Models for Image Recognition"
 REQUIRES = ['cython', 'numpy', 'opencv-python', 'torch', 'h5py', 'em_pre_torch_ext']
 

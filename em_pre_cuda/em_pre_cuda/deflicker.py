@@ -62,11 +62,13 @@ def _spatial_filter(img, kernel, padding):
     output = conv2d(pad_img, kernel)
     return torch.squeeze(output)
 
+def _temporal_filter(ims, window, method):
+    if method == 'median':
+        return em_pre_torch_ext.median_filter(ims, window)
+    else:
+        raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
 
-def _temporal_filter(ims, window):
-    return em_pre_torch_ext.median_filter(ims, window)
-
-def _create_temporal_kernel(method, radius):
+def _create_t_flt_window(method, radius):
     if method == 'median':
         return torch.tensor([0, 0, radius], device='cpu', dtype=torch.float32)
     else:
@@ -115,7 +117,7 @@ def deflicker_online(get_im, num_slice=100, global_stat=None,
 
     # Temporal window initialization:
     t_flt_diam = 2 * t_flt_rad + 1
-    temporal_filter = _create_temporal_kernel(temp_flt_method, t_flt_rad)
+    temp_flt_window = _create_t_flt_window(temp_flt_method, t_flt_rad)
 
     # Spatial Filter Kernel/Padding Creation:
     spat_padding = (s_flt_rad, ) * 4
@@ -161,20 +163,21 @@ def deflicker_online(get_im, num_slice=100, global_stat=None,
             im_m = _pre_process(get_im(num_slice - 1 - t_flt_rad + (num_slice - 1 - i)), global_stat, pre_proc_method,
                                 sampling_step, mask_thres)
         mean_tensor[:, :, chunk_id] = _spatial_filter(im_m, spatial_kernel, spat_padding)
-
+        del im_m
         # local temporal filtering
-        if temp_flt_method == 'median':  # median filter
-            filter_r = _temporal_filter(mean_tensor, temporal_filter)
-        else:
-            raise NotImplementedError('need to implement')
+        filter_r = _temporal_filter(mean_tensor, temp_flt_window, temp_flt_method)
 
         filter_rd = filter_r[:, :, t_flt_rad] - mean_tensor[:, :, im_id]
+        del filter_r
         im_diff = _spatial_filter(filter_rd, spatial_kernel, spat_padding)
+        del filter_rd
         out_im = torch.clamp(im + im_diff, 0, 255).cpu().numpy()
+        del im_diff, im
         if write_dir is None:
             final_out[:, :, i] = out_im
         else:
             cv2.imwrite(write_dir % (i + 1), out_im)
+        del out_im
         im_id = (im_id + 1) % t_flt_diam
         chunk_id = (chunk_id + 1) % t_flt_diam
     _print("Local normalization complete.")

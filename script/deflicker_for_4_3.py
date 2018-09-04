@@ -10,18 +10,18 @@ import numpy as np
 import em_pre_cuda.deflicker as dfkr_gpu
 from T_util import writeh5
 
-IN_DATA_PATH = "/mnt/d5d402f1-882e-4686-99db-77f08c51ac84/Data/4_3_downsampled_debug.h5"
+IN_DATA_PATH = "/mnt/d5d402f1-882e-4686-99db-77f08c51ac84/Data/Cerebellum/4_3_deflickering_input.h5"
 INPUT_DATASET = "main"
 OUTPUT_DATASET = "main"
 CPU_IM_OUT_PATH = "./test_output/T_deflicker_cpu_out.h5"
-GPU_IM_OUT_PATH = "./test_output/T_deflicker_gpu_out.h5"
+GPU_IM_OUT_PATH = "./test_output/T_deflicker_gpu_out_ds.h5"
 CPU_PROF_OUT_PATH = "./cpu.profile"
 GPU_PROF_OUT_PATH = "./gpu.profile"
 
 
 def read_h5_as_np(data_path, dataset_name):
     a= h5py.File(data_path, 'r')[dataset_name]
-    return np.array(a, dtype=np.float32)
+    return np.array(a[20:40], dtype=np.float32)
 
 
 def df():
@@ -44,9 +44,9 @@ def df():
     #                                     filterS_hsz=[15, 15],
     #                                     filterT_hsz=2)
 
-    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, num_slice=2057,
+    out_gpu = dfkr_gpu.deflicker_online(get_n_cuda, num_slice=20,
                                         global_stat=(150, -1),
-                                        pre_proc_method='threshold',
+                                        pre_proc_method='naive',
                                         s_flt_rad=15, 
                                         t_flt_rad=2)
     torch.cuda.empty_cache()
