@@ -4,7 +4,7 @@ dist/
 *.sw*
 *~
 *.pyc
-
+.idea
 em_pre/*.cpp
 em_pre/*.c
 

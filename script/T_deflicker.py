@@ -8,18 +8,17 @@ import cProfile
 import h5py
 import torch
 import numpy as np
-import cv2
 import em_pre.deflicker as dfkr_cpu
 import em_pre_cuda.deflicker as dfkr_gpu
 from T_util import writeh5
 
-IN_DATA_PATH = "test_data.h5"
+IN_DATA_PATH = "/home/matinraayai/Data/test_data.h5"
 INPUT_DATASET = "main"
 OUTPUT_DATASET = "main"
-CPU_IM_OUT_PATH = "./test_output/T_deflicker_cpu_out.h5"
-GPU_IM_OUT_PATH = "./test_output/T_deflicker_gpu_out.h5"
-CPU_PROF_OUT_PATH = "./cpu.profile"
-GPU_PROF_OUT_PATH = "./gpu.profile"
+CPU_IM_OUT_PATH = "../tmp/T_deflicker_cpu_out.h5"
+GPU_IM_OUT_PATH = "../tmp/T_deflicker_gpu_out.h5"
+CPU_PROF_OUT_PATH = "../tmp/cpu.profile"
+GPU_PROF_OUT_PATH = "../tmp/gpu.profile"
 
 
 def read_h5_as_np(data_path, dataset_name):
@@ -54,8 +53,7 @@ def test_snemi():
                                         pre_proc_method='threshold',
                                         global_stat=(150, -1), 
                                         s_flt_rad=15, 
-                                        t_flt_rad=2,
-                                        write_dir="./%d_gpu_new.png")
+                                        t_flt_rad=2)
     gpu_profile.disable();torch.cuda.empty_cache()
     
     writeh5(CPU_IM_OUT_PATH, OUTPUT_DATASET, out_cpu)
