@@ -41,7 +41,7 @@ def replace_missing_tile(missing_idx, tile_name):
     while True:
         curr_tile_path = (INPUT_TILE_DIR % (current_idx + 1)) + tile_name
         if path.exists(curr_tile_path):
-            return read_tile(current_idx)
+            return read_tile(curr_tile_path)
         current_idx = current_idx - 1
         if current_idx < 0:
             raise IndexError("Failed to recover the missing tile for %s" % tile_name)
