@@ -8,7 +8,7 @@ from itertools import product
 from os import path
 
 
-PROF_RESULT_PATH = "./Profiler_Results/deflicker_all_cerebellum.profile"
+# PROF_RESULT_PATH = "./Profiler_Results/deflicker_all_cerebellum.profile"
 IDX_FILE_PATH = "/n/coxfs01/donglai/data/cerebellum/data/unique_slice_v1.txt"
 INPUT_TILE_DIR = "/n/coxfs01/donglai/data/cerebellum/orig_png/%04d/"
 TILE_NAME = "%d_%d.png"
@@ -50,7 +50,7 @@ def replace_missing_tile(missing_idx, tile_name):
 def deflicker_cerebellum():
     idx_array = open(IDX_FILE_PATH).readlines()
     profiler = cProfile.Profile()
-    df_range = range(sys.argv[1], sys.argv[2])
+    df_range = range(int(sys.argv[1]), int(sys.argv[2]))
 
 
     def get_slice(idx):
@@ -60,9 +60,9 @@ def deflicker_cerebellum():
         :return: The desired slice as a Torch CUDA Tensor.
         """
         slice_dir = INPUT_TILE_DIR % int(idx_array[idx])
-        slice_cpu = np.zeros(TILE_RES[0] * TILES_IN_ROW, TILE_RES[1] * TILES_IN_COL)
+        slice_cpu = np.zeros((TILE_RES[0] * TILES_IN_ROW, TILE_RES[1] * TILES_IN_COL), dtype=np.float32)
         for i, j in product(range(TILES_IN_ROW), range(TILES_IN_COL)):
-            cur_tile_name = TILE_NAME % (i + ROW_IDX_0, j + COL_IDX_0)
+            cur_tile_name = TILE_NAME % (j + COL_IDX_0, i + ROW_IDX_0)
             cur_tile_path = slice_dir + cur_tile_name
             cur_tile = read_tile(cur_tile_path) if path.exists(cur_tile_path) \
                 else replace_missing_tile(idx, cur_tile_name)
@@ -83,7 +83,7 @@ def deflicker_cerebellum():
     profiler.disable()
     torch.cuda.empty_cache()
     profiler.print_stats(sort=1)
-    profiler.dump_stats(PROF_RESULT_PATH)
+    # profiler.dump_stats(PROF_RESULT_PATH)
 
 
 if __name__ == "__main__":
