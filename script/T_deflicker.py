@@ -53,7 +53,8 @@ def test_snemi():
                                         pre_proc_method='threshold',
                                         global_stat=(150, -1), 
                                         s_flt_rad=15, 
-                                        t_flt_rad=2)
+                                        t_flt_rad=2,
+                                        write_dir="%d.png")
     gpu_profile.disable();torch.cuda.empty_cache()
     
     writeh5(CPU_IM_OUT_PATH, OUTPUT_DATASET, out_cpu)
