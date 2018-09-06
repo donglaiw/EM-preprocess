@@ -66,8 +66,8 @@ def deflicker_cerebellum():
             cur_tile_path = slice_dir + cur_tile_name
             cur_tile = read_tile(cur_tile_path) if path.exists(cur_tile_path) \
                 else replace_missing_tile(idx, cur_tile_name)
-            cur_tile_y_idx = np.s_[TILE_RES[0] * i: TILE_RES[0] * (i + 1)]
-            cur_tile_x_idx = np.s_[TILE_RES[1] * j: TILE_RES[1] * (j + 1)]
+            cur_tile_x_idx = np.s_[TILE_RES[0] * i: TILE_RES[0] * (i + 1)]
+            cur_tile_y_idx = np.s_[TILE_RES[1] * j: TILE_RES[1] * (j + 1)]
             slice_cpu[cur_tile_x_idx, cur_tile_y_idx] = cur_tile
         slice_gpu = torch.from_numpy(slice_cpu).cuda()
         del slice_cpu
