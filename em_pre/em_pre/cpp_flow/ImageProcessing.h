@@ -227,7 +227,7 @@ void ImageProcessing::ResizeImage(const T1 *pSrcImage, T2 *pDstImage, int SrcWid
 {
 	double xRatio=(double)DstWidth/SrcWidth;
 	double yRatio=(double)DstHeight/SrcHeight;
-	memset(pDstImage,sizeof(T2)*DstWidth*DstHeight*nChannels,0);
+	memset(pDstImage,0,sizeof(T2)*DstWidth*DstHeight*nChannels);
 
 	double x,y;
 
