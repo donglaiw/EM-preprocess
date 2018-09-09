@@ -13,7 +13,7 @@
  * @param radZ the z-radius of the median filter.
  * @return the middle slice of the output of the median filter as an ATen CUDA Tensor with float data type.
  */
-at::Tensor cuda_3d_median(const at::Tensor& imStack) {
+at::Tensor cuda_median_3d(const at::Tensor& imStack) {
     at::Tensor imStackOut = at::zeros_like(imStack[0]);
     const int32_t dimX = imStack.size(2), dimY = imStack.size(1), dimZ = imStack.size(0);
     const dim3 blockDim(BLOCK_DIM_LEN, BLOCK_DIM_LEN);
