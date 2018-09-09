@@ -7,7 +7,11 @@
 #pragma once
 #include <torch/torch.h>
 
+at::Tensor cuda_median_3d(const at::Tensor& imStack);
+
 at::Tensor cuda_median_3d(const at::Tensor& imStack, const at::Tensor& filtRads);
+
+
 
 // NOTE: AT_ASSERT has become AT_CHECK on master after 0.4.
 #define CHECK_CUDA(x) AT_CHECK(x.type().is_cuda(), #x " must be a CUDA tensor")
