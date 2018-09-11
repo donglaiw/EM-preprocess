@@ -12,8 +12,9 @@ from torch.nn.functional import conv2d, pad
 import numpy as np
 
 
-def _pre_process(image, global_stat, method='naive', sampling_step=10, mask_thres=(10, 245)):
-    """TODO
+def _pre_process(image, global_stat=None, method='naive', sampling_step=10, mask_thres=(10, 245)):
+    """
+    Global image pre-processing.
     :param image: the desired image as a Pytorch Tensor.
     :param global_stat: A two element tuple containing info regarding the desired global statistic of the image stack,
     the first element being the mean and the second being the std.
@@ -173,16 +174,12 @@ def deflicker_online(get_im, slice_range=None, global_stat=None,
                                 pre_proc_method,
                                 sampling_step, mask_thres)
         mean_tensor[:, :, chunk_id] = _spatial_filter(im_m, spatial_kernel, spat_padding)
-        del im_m
         # local temporal filtering
         filter_r = _temporal_filter(mean_tensor, temp_flt_window, temp_flt_method)
 
         filter_rd = filter_r[:, :, t_flt_rad] - mean_tensor[:, :, im_id]
-        del filter_r
         im_diff = _spatial_filter(filter_rd, spatial_kernel, spat_padding)
-        del filter_rd
         out_im = torch.clamp(im + im_diff, 0, 255).cpu().numpy()
-        del im_diff, im
         if write_dir is None:
             final_out[:, :, i] = out_im
         else:
