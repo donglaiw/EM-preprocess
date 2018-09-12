@@ -12,16 +12,14 @@ from abc import ABCMeta, abstractmethod
 import h5py
 
 
-class SliceGetter:
-    __metaclass__ = ABCMeta
+class SliceGetter(object):
 
 
-    def __init__(self, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=torch.float32, caching_limit=100):
+    def __init__(self, pre_processor, loader, idx_begin=0, idx_end=100, caching_limit=100):
         self.pre_processor = pre_processor
-        self.device = torch.device(device) if device is not None else 'cpu'
+        self.loader = loader
         self.idx_begin = idx_begin
         self.idx_end = idx_end
-        self.dtype = dtype
         self.caching_limit = caching_limit
         manager = Manager()
         self.cache = manager.dict()
@@ -44,7 +42,7 @@ class SliceGetter:
         while len(self.cache == self.caching_limit):
             self.cond_empty.wait()
         if (not self.cache.has_key(idx)):
-            self.cache[idx] = self.pre_processor(self.__load_raw_slice(idx))
+            self.cache[idx] = self.pre_processor(self.loader(idx))
         self.cond_fill.notify()
         self.cache_lock.release()
 
@@ -59,10 +57,6 @@ class SliceGetter:
             del self.cache[oldest_idx]
             self.cond_empty.notify()
             self.cache_lock.release()
-
-    @abstractmethod
-    def __load_raw_slice(self, idx):
-        pass
 
     def __getitem__(self, item):
         """
@@ -82,7 +76,7 @@ class SliceGetter:
             if item in self.cache.keys():
                 new_slice = self.cache[item]
             else:
-                new_slice = self.pre_processor(self.__load_raw_slice(item))
+                new_slice = self.pre_processor(self.loader(item))
                 self.cache[item] = new_slice
             self.cache_lock.release()
             return new_slice
@@ -90,24 +84,23 @@ class SliceGetter:
 
 class DiskSliceGetter(SliceGetter):
     def __init__(self, path, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=torch.float32, caching_limit=20):
-        self.path = path
-        super(DiskSliceGetter, self).__init__(pre_processor, device, idx_begin, idx_end, dtype, caching_limit)
+        def loader(idx):
+            slice_as_np = cv2.imread(path % idx).astype(self.dtype)
+            return torch.from_numpy(slice_as_np).to(self.device)
 
-    def __load_raw_slice(self, idx):
-        slice_as_np = cv2.imread(self.path % idx).astype(self.dtype)
-        return torch.from_numpy(slice_as_np).to(self.device)
+        super(DiskSliceGetter, self).__init__(pre_processor, loader, device, idx_begin, idx_end, dtype, caching_limit)
 
 
 class H5SliceGetter(SliceGetter):
     def __init__(self, path, pre_processor, data_set='main', device=None, idx_begin=0, idx_end=100, dtype=torch.float32,
                  caching_limit=20):
-        self.data_set = data_set
-        self.path = path
-        super(H5SliceGetter, self).__init__(pre_processor, device, idx_begin, idx_end, dtype, caching_limit)
+        def loader(idx):
+            slice_as_np = np.array(h5py.File(path)[data_set][idx])
+            return torch.from_numpy(slice_as_np).to(device)
 
-    def __load_raw_slice(self, idx):
-        slice_as_np = np.array(h5py.File(self.path)[self.data_set][idx])
-        return torch.from_numpy(slice_as_np).to(self.device)
+        super(H5SliceGetter, self).__init__(pre_processor, loader, idx_begin, idx_end, caching_limit)
+
+
 
 
 class CerebellumSliceGetter(SliceGetter):
@@ -115,5 +108,5 @@ class CerebellumSliceGetter(SliceGetter):
         self.path = path
         super(CerebellumSliceGetter, self).__init__(pre_processor, device, idx_begin, idx_end, dtype, caching_limit)
 
-    def __load_raw_slice(self, idx):
+    def loader(self, idx):
         pass
