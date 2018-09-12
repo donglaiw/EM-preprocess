@@ -12,7 +12,7 @@ import em_pre.deflicker as dfkr_cpu
 import em_pre_cuda.deflicker as dfkr_gpu
 from T_util import writeh5
 
-IN_DATA_PATH = "/home/matinraayai/Data/test_data.h5"
+IN_DATA_PATH = "/home/matinraayai/cerebellum_test_chunk.h5"
 INPUT_DATASET = "main"
 OUTPUT_DATASET = "main"
 CPU_IM_OUT_PATH = "../tmp/T_deflicker_cpu_out.h5"

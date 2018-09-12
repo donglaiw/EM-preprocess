@@ -7,6 +7,8 @@ def writeh5(filename, datasetname, dtarray):
     ds[:] = dtarray                                                                                  
     fid.close()
 
+def read_h5(directory, dataset_name, dtype=np.float32):
+    return np.array(h5py.File(directory, 'r')[dataset_name], dtype=dtype)
 
 ### data io
 def getTile(D0, sliceNames, xId, yId, zId, imSize=None, suf=''):

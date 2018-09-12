@@ -1,10 +1,10 @@
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from Cython.Distutils import build_ext
 import numpy as np
 import glob
 
 NAME = "em_pre_cuda"
-VERSION = "0.0.4"
+VERSION = "0.0.6"
 DESCR = "C++/CUDA implementation of Deformation Models for Image Recognition"
 REQUIRES = ['cython', 'numpy', 'opencv-python', 'torch', 'h5py', 'em_pre_torch_ext']
 
@@ -13,7 +13,7 @@ EMAIL = "weiddoonngglai@gmail.com, raayai.matin@gmail.com"
 LICENSE = "Apache 2.0"
 SRC_DIR = "em_pre_cuda"
 URL = 'https://github.com/donglaiw/EM-preprocess'
-PACKAGES = [SRC_DIR]
+PACKAGES = find_packages()
 
 if __name__ == "__main__":
     # python setup.py develop install

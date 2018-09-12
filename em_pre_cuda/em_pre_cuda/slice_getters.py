@@ -15,7 +15,8 @@ import h5py
 class SliceGetter:
     __metaclass__ = ABCMeta
 
-    def __init__(self, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=np.float32, caching_limit=100):
+
+    def __init__(self, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=torch.float32, caching_limit=100):
         self.pre_processor = pre_processor
         self.device = torch.device(device) if device is not None else 'cpu'
         self.idx_begin = idx_begin
@@ -50,7 +51,7 @@ class SliceGetter:
     def _cleaner_process(self):
         while not self.stop_cleaner:
             self.cache_lock.acquire()
-            while(len(self.cache) < self.caching_limit):
+            while len(self.cache) < self.caching_limit:
                 self.cond_fill.wait()
             self.idx_history_lock.acquire()
             oldest_idx = self.idx_history.get()
@@ -88,7 +89,7 @@ class SliceGetter:
 
 
 class DiskSliceGetter(SliceGetter):
-    def __init__(self, path, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=np.float32, caching_limit=20):
+    def __init__(self, path, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=torch.float32, caching_limit=20):
         self.path = path
         super(DiskSliceGetter, self).__init__(pre_processor, device, idx_begin, idx_end, dtype, caching_limit)
 
@@ -98,7 +99,7 @@ class DiskSliceGetter(SliceGetter):
 
 
 class H5SliceGetter(SliceGetter):
-    def __init__(self, path, pre_processor, data_set='main', device=None, idx_begin=0, idx_end=100, dtype=np.float32,
+    def __init__(self, path, pre_processor, data_set='main', device=None, idx_begin=0, idx_end=100, dtype=torch.float32,
                  caching_limit=20):
         self.data_set = data_set
         self.path = path
@@ -110,7 +111,7 @@ class H5SliceGetter(SliceGetter):
 
 
 class CerebellumSliceGetter(SliceGetter):
-    def __init__(self, path, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=np.float32, caching_limit=20):
+    def __init__(self, path, pre_processor, device=None, idx_begin=0, idx_end=100, dtype=torch.float32, caching_limit=20):
         self.path = path
         super(CerebellumSliceGetter, self).__init__(pre_processor, device, idx_begin, idx_end, dtype, caching_limit)
 
