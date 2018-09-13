@@ -12,5 +12,5 @@ class PyTorch2dConvolution:
     def __call__(self, image):
         unsqz_im = torch.unsqueeze(torch.unsqueeze(image, 0), 0)
         pad_img = pad(unsqz_im, self.padding, mode='reflect')
-        output = conv2d(pad_img, self.conv_kernel)
+        output = conv2d(pad_img, self.kernel)
         return torch.squeeze(output)

@@ -45,8 +45,8 @@ class PyTorchExtMedian(TemporalFilter):
         pass
 
     def __call__(self, ims):
-        window = torch.tensor([0 , 0, len(ims)])
-        return em_pre_torch_ext.median_filter(ims, window)
+        window = torch.tensor([0, 0, len(ims) / 2], dtype=torch.float32)
+        return em_pre_torch_ext.median_filter(ims, window)[len(ims) / 2]
 
 
 class NdImageMedian(TemporalFilter):
@@ -59,4 +59,4 @@ class NdImageMedian(TemporalFilter):
 
     def __call__(self, ims):
         size = [1, 1, len(ims)]
-        return nd.median_filter(ims.numpy(), size = size)
+        return nd.median_filter(ims.numpy(), size=size)
