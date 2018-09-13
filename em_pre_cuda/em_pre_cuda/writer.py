@@ -1,19 +1,20 @@
 import torch
-from torch.multiprocessing import Pool, Condition, Manager, Queue
+from threading import Condition
+from multiprocessing.pool import ThreadPool 
+from torch.multiprocessing import Queue
 import cv2
 from os import path, makedirs
 
 class SlicerWriter:
-    def __init__(self, writer, num_processes=5, num_slices=100):
+    def __init__(self, writer, num_threads=5, num_slices=100):
         self.writer = writer
         self.num_slices = num_slices
-        manager = Manager()
-        self.cond_empty = manager.Condition()
-        self.queue = manager.Queue()
-        self.processes = Pool(num_processes)
+        self.cond_empty = Condition()
+        self.queue = Queue()
+        self.threads = ThreadPool(num_threads)
 
     def start(self):
-        self.processes.map_async(self.writer_process, range(self.num_slices))
+        self.threads.map_async(self.writer_process, range(self.num_slices))
 
 
     def post(self, image, idx):
@@ -24,10 +25,10 @@ class SlicerWriter:
         while self.queue.empty():
             self.cond_empty.wait()
         image, idx = self.queue.get()
-        self.writer(image.cpu().numpy(), idx)
+        self.writer(image.numpy(), idx)
 
 
-def png_slice_writer(output_dir, image_name, num_processes=5, num_slices=100):
+def png_slice_writer(output_dir, image_name, num_threads=5, num_slices=100):
     def writer(image, idx):
         output_dir_c = output_dir
         img_name_c = image_name
@@ -40,4 +41,4 @@ def png_slice_writer(output_dir, image_name, num_processes=5, num_slices=100):
             makedirs(output_dir_c)
         cv2.imwrite(img_path, image)
         
-    return SlicerWriter(writer, num_processes, num_slices)
+    return SlicerWriter(writer, num_threads, num_slices)
