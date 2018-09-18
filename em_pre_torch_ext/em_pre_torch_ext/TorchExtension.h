@@ -6,16 +6,15 @@
  **********************************************************************************************************************/
 #pragma once
 #include <torch/torch.h>
+#include <vector>
 
-at::Tensor cuda_median_3d(const at::Tensor& imStack);
+at::Tensor cuda_median_3d(const at::Tensor& sliceStack);
 
-at::Tensor cuda_median_3d(const at::Tensor& imStack, const at::Tensor& filtRads);
+at::Tensor cuda_median_3d(const at::Tensor& sliceStack, int radX, int radY, int radZ);
 
 
-
-// NOTE: AT_ASSERT has become AT_CHECK on master after 0.4.
-#define CHECK_CUDA(x) AT_CHECK(x.type().is_cuda(), #x " must be a CUDA tensor")
-#define CHECK_CPU(x) AT_CHECK(!x.type().is_cuda(), #x " must be a CPU tensor")
-#define CHECK_CONTIGUOUS(x) AT_CHECK(x.is_contiguous(), #x " must be contiguous")
-#define CHECK_INPUT_CUDA(x) CHECK_CUDA(x); CHECK_CONTIGUOUS(x) 
-#define CHECK_INPUT_CPU(x) CHECK_CPU(x); CHECK_CONTIGUOUS(x)
+#define CHECK_TENSOR_IS_CUDA(x) AT_CHECK(x.type().is_cuda(), #x " must be a CUDA tensor")
+#define CHECK_TENSOR_IS_CPU(x) AT_CHECK(!x.type().is_cuda(), #x " must be a CPU tensor")
+#define CHECK_TENSOR_IS_CONTIGUOUS(x) AT_CHECK(x.is_contiguous(), #x " must be contiguous")
+#define CHECK_CUDA_TENSOR(x) CHECK_TENSOR_IS_CUDA(x); CHECK_TENSOR_IS_CONTIGUOUS(x)
+#define CHECK_CPU_TENSOR(x) CHECK_TENSOR_IS_CPU(x); CHECK_TENSOR_IS_CONTIGUOUS(x)

@@ -8,36 +8,63 @@
  #include "TorchExtensionKernel.h"
 
 /**
- * Applies a median filter to the image stack with a window shape of [1, 1, 2 * radZ + 1] and returns the middle slice.
- * @param imStack input image stack as a ATen CUDA tensor with float data type.
- * @param radZ the z-radius of the median filter.
- * @return the middle slice of the output of the median filter as an ATen CUDA Tensor with float data type.
- */
-at::Tensor cuda_median_3d(const at::Tensor& imStack) {
-    at::Tensor imStackOut = at::zeros_like(imStack[0]);
-    const int32_t dimX = imStack.size(2), dimY = imStack.size(1), dimZ = imStack.size(0);
-    const dim3 blockDim(BLOCK_DIM_LEN, BLOCK_DIM_LEN);
-    const dim3 gridDim((dimX/blockDim.x + ((dimX%blockDim.x)?1:0)), (dimY/blockDim.y + ((dimY%blockDim.y)?1:0)));
-
-    AT_DISPATCH_FLOATING_TYPES(imStack.type(), "__median_3d", ([&] {
-        __median_3d<scalar_t><<<gridDim, blockDim>>>(
-            imStack.data<scalar_t>(),
-            imStackOut.data<scalar_t>(),
-            dimX,
-            dimY,
-            dimZ);
-      }));
-    return imStackOut;
-}
-
-/**
- * A getter used by the threads in each kernel to access a 3d slice stack.
- */
+* A getter used by the threads in each kernel to access a 3d slice stack.
+*/
 inline __device__ __host__ int clamp_mirror(int idx, int minIdx, int maxIdx)
 {
     if(idx < minIdx) return (minIdx + (minIdx - idx));
     else if(idx > maxIdx) return (maxIdx - (idx - maxIdx));
     else return idx;
+}
+
+
+
+/**
+ * Applies a median filter to the image stack with a window shape of [1, 1, 2 * radZ + 1] and returns the middle slice.
+ * @param imStack input image stack as a ATen CUDA tensor with float data type.
+ * @param radZ the z-radius of the median filter.
+ * @return the middle slice of the output of the median filter as an ATen CUDA Tensor with float data type.
+ */
+at::Tensor cuda_median_3d(const at::Tensor& sliceStack) {
+    at::Tensor out = at::zeros_like(sliceStack[0]);
+    const int32_t dimX = sliceStack.size(2), dimY = sliceStack.size(1), dimZ = sliceStack.size(0);
+    const dim3 blockDim(BLOCK_DIM_LEN, BLOCK_DIM_LEN);
+    const dim3 gridDim((dimX / blockDim.x + ((dimX % blockDim.x) ? 1 : 0)), (dimY / blockDim.y + ((dimY % blockDim.y) ? 1 : 0)));
+
+    AT_DISPATCH_FLOATING_TYPES(sliceStack.type(), "__median_3d", ([&] {
+        __median_3d<scalar_t><<<gridDim, blockDim>>>(
+            sliceStack.data<scalar_t>(),
+            out.data<scalar_t>(),
+            dimX,
+            dimY,
+            dimZ);
+      }));
+    return out;
+}
+
+at::Tensor cuda_median_3d(const at::Tensor& sliceStack, const int radX, const int radY, const int radZ) {
+
+    at::Tensor out = at::zeros_like(sliceStack);
+    const int32_t dimX = sliceStack.size(2), dimY = sliceStack.size(1), dimZ = sliceStack.size(0);
+
+    const dim3 blockDim(BLOCK_DIM_LEN, BLOCK_DIM_LEN, BLOCK_DIM_LEN);
+    const dim3 gridDim(
+            (dimX/blockDim.x + ((dimX%blockDim.x)?1:0)),
+            (dimY/blockDim.y + ((dimY%blockDim.y)?1:0)),
+            (dimZ/blockDim.z + ((dimZ%blockDim.z)?1:0)));
+
+    AT_DISPATCH_FLOATING_TYPES(sliceStack.type(), "__median_3d", ([&] {
+        __median_3d<scalar_t><<<gridDim, blockDim>>>(
+                        sliceStack.data<scalar_t>(),
+                        out.data<scalar_t>(),
+                        dimX,
+                        dimY,
+                        dimZ,
+                        radX,
+                        radY,
+                        radZ);
+    }));
+    return out;
 }
 
 template<typename scalar_t>
@@ -72,36 +99,7 @@ void __median_3d(scalar_t* __restrict__ imStackIn, scalar_t* __restrict__ sliceO
     sliceOut[get_1d_idx(col_idx, row_idx, 0)] = windowVec[vSize/2];   //Set the output variables.
 }
 
-at::Tensor cuda_median_3d(const at::Tensor& imStack, const at::Tensor& filtRads) {
 
-    at::Tensor imStackOut = at::zeros_like(imStack);
-    const int32_t dimX = imStack.size(2), dimY = imStack.size(1), dimZ = imStack.size(0);
-    auto f_copy = filtRads;
-    //TODO: Make this accept all types.
-    auto fa = f_copy.accessor<float, 1>();
-    const int32_t radX = static_cast<int32_t>(fa[2]);
-    const int32_t radY = static_cast<int32_t>(fa[1]);
-    const int32_t radZ = static_cast<int32_t>(fa[0]);
-
-    const dim3 blockDim(BLOCK_DIM_LEN, BLOCK_DIM_LEN, BLOCK_DIM_LEN);
-    const dim3 gridDim(
-        (dimX/blockDim.x + ((dimX%blockDim.x)?1:0)),
-        (dimY/blockDim.y + ((dimY%blockDim.y)?1:0)),
-        (dimZ/blockDim.z + ((dimZ%blockDim.z)?1:0)));
-
-    AT_DISPATCH_FLOATING_TYPES(imStack.type(), "__median_3d", ([&] {
-        __median_3d<scalar_t><<<gridDim, blockDim>>>(
-            imStack.data<scalar_t>(),
-            imStackOut.data<scalar_t>(),
-            dimX,
-            dimY,
-            dimZ,
-            radX,
-            radY,
-            radZ);
-      }));
-    return imStackOut;
-}
 
 template<typename scalar_t>
 __global__
