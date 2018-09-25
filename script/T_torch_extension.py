@@ -19,10 +19,10 @@ import sys
 
 # Constants:
 INPUT_FILE_DIR = "/home/matinraayai/cerebellum_test_chunk.h5"
-OUTPUT_FILE_DIR = "./test_output/"
+OUTPUT_FILE_DIR = "test_output/"
 DATASET_NAME = 'main'
-SLICES = np.zeros((1, 1, 1))
-FILTER_DIMS = [1, 1, 7]
+SLICES = np.zeros((100, 1024, 1024))
+FILTER_DIMS = [7, 1, 1]
 
 
 def read_h5(directory, dataset_name, dtype=np.float32):
@@ -35,7 +35,7 @@ def median_cpu(ims):
 
 def median_gpu(ims):
     ims_cuda = torch.from_numpy(ims).cuda()
-    filter_torch = torch.tensor(FILTER_DIMS, device='cpu', dtype=torch.float32) / 2
+    filter_torch = [i / 2 for i in FILTER_DIMS]
     output = em_pre_torch_ext.median_filter(ims_cuda, filter_torch)
     return output.cpu().numpy()
 
@@ -53,6 +53,7 @@ def dump_ims(path, ims):
 class TestMedian(unittest.TestCase):
 
     def test_read_h5(self):
+        global SLICES
         SLICES = read_h5(INPUT_FILE_DIR, DATASET_NAME)
         if not os.path.exists(OUTPUT_FILE_DIR):
             os.makedirs(OUTPUT_FILE_DIR)
@@ -62,45 +63,53 @@ class TestMedian(unittest.TestCase):
         self.assertTrue(torch.cuda.is_available(), "CUDA-enabled GPU is not available.")
 
     def test_median_v1(self):
-        profiler_cpu = profiler_gpu = cProfile.Profile()
+        slices = read_h5(INPUT_FILE_DIR, DATASET_NAME)
+        profiler_cpu = cProfile.Profile()
+        profiler_gpu = cProfile.Profile()
         profiler_cpu.enable()
-        out_cpu = median_cpu(SLICES)
+        out_cpu = median_cpu(slices)
         profiler_cpu.disable()
         profiler_gpu.enable()
-        out_cuda = median_gpu(SLICES)
+        out_cuda = median_gpu(slices)
         profiler_gpu.disable()
         color_out = np.zeros((out_cpu.shape[0], out_cpu.shape[1], out_cpu.shape[2], 3))
         diff = out_cuda - out_cpu
-        color_out[:, :, 0] = diff
-        color_out[:, :, 1] = -diff
+        color_out[:, :, :, 0] = diff
+        color_out[:, :, :, 1] = -diff
         dump_ims(OUTPUT_FILE_DIR + "cpu_v1_%d.png", out_cpu)
         dump_ims(OUTPUT_FILE_DIR + "gpu_v1_%d.png", out_cuda)
         dump_ims(OUTPUT_FILE_DIR + "diff_v1_%d.png", color_out)
+        profiler_cpu.print_stats(1)
+        print "Test 1:"
+        profiler_gpu.print_stats(1)
         profiler_cpu.dump_stats(OUTPUT_FILE_DIR + "cpu_v1.profile")
         profiler_gpu.dump_stats(OUTPUT_FILE_DIR + "gpu_V1.profile")
 
     def test_minimal_median(self):
-        profiler_cpu = profiler_gpu = cProfile.Profile()
+        slices = read_h5(INPUT_FILE_DIR, DATASET_NAME)
+        profiler_cpu = cProfile.Profile()
+        profiler_gpu = cProfile.Profile()
         profiler_cpu.enable()
         out_cpu = out_cuda = []
-        for i in range(len(SLICES) - FILTER_DIMS[2] / 2):
+        for i in range(len(slices) - FILTER_DIMS[0] / 2 - 3):
             profiler_cpu.enable()
-            out_cpu.append(median_cpu(SLICES[i: i + FILTER_DIMS[2]]))
+            out_cpu.append(median_cpu(slices[i: i + FILTER_DIMS[0]])[FILTER_DIMS[0] / 2])
             profiler_cpu.disable()
             profiler_gpu.enable()
-            out_cuda.append(median_gpu_v2(SLICES[i: i + FILTER_DIMS[2]]))
+            out_cuda.append(median_gpu_v2(slices[i: i + FILTER_DIMS[0]]))
             profiler_gpu.disable()
-        print out_cpu
         out_cpu = np.array(out_cpu)
-        print out_cpu.shape
         out_cuda = np.array(out_cuda)
-        color_out = np.zeros((out_cpu.shape[0], out_cpu.shape[1], 3))
+        color_out = np.zeros((out_cpu.shape[0], out_cpu.shape[1], out_cpu.shape[2], 3))
         diff = out_cuda - out_cpu
-        color_out[:, :, 0] = diff
-        color_out[:, :, 1] = -diff
+        color_out[:, :, :, 0] = diff
+        color_out[:, :, :, 1] = -diff
         dump_ims(OUTPUT_FILE_DIR + "cpu_v2_%d.png", out_cpu)
         dump_ims(OUTPUT_FILE_DIR + "gpu_v2_%d.png", out_cuda)
         dump_ims(OUTPUT_FILE_DIR + "diff_v2_%d.png", color_out)
+        print "Test 2:"
+        profiler_cpu.print_stats(1)
+        profiler_gpu.print_stats(1)
         profiler_cpu.dump_stats(OUTPUT_FILE_DIR + "cpu_v2.profile")
         profiler_gpu.dump_stats(OUTPUT_FILE_DIR + "gpu_V2.profile")
 

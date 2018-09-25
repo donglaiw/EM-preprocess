@@ -14,7 +14,7 @@ import h5py
 
 
 class SliceGetter(object):
-    def __init__(self, pre_processor, loader, num_threads=20, idx_begin=0, idx_end=100, caching_limit=100):
+    def __init__(self, pre_processor, loader, num_threads=2, idx_begin=0, idx_end=100, caching_limit=100):
         self.pre_processor = pre_processor
         self.loader = loader
         self.idx_begin = idx_begin
@@ -25,25 +25,25 @@ class SliceGetter(object):
         self.idx_history = Queue()
         self.reader_threads = ThreadPool(num_threads)
         self.stop_cleaner = False
-        self.cleaner_threads = Thread(target=self.cleaner_thread)
-        self.cleaner_threads.daemon = True
+        #self.cleaner_threads = Thread(target=self.cleaner_thread)
+        #self.cleaner_threads.daemon = True
 
     def start(self):
         self.reader_threads.map_async(self.reader_thread, range(self.idx_begin, self.idx_end))
-        self.cleaner_threads.start()
+        #self.cleaner_threads.start()
 
     def stop(self):
         self.stop_cleaner = True
         self.reader_threads.close()
 
     def reader_thread(self, idx):
-        self.cond_empty.acquire()
-        while len(self.cache) >= self.caching_limit:
-            self.cond_empty.wait()
+        #self.cond_empty.acquire()
+        #while len(self.cache) >= self.caching_limit:
+         #   self.cond_empty.wait()
         if idx not in self.cache:
             self.cache[idx] = self.pre_processor(self.loader(idx))
-        self.cond_fill.notify()
-        self.cond_empty.release()
+        #self.cond_fill.notify()
+        # self.cond_empty.release()
 
     def cleaner_thread(self):
         self.cond_fill.acquire()
@@ -65,7 +65,7 @@ class SliceGetter(object):
         if item > self.idx_end - 1:
             return self.__getitem__(2 * self.idx_end - item - 2)
         else:
-            self.idx_history.put(item)
+            #self.idx_history.put(item)
             if item in self.cache.keys():
                 new_slice = self.cache[item]
             else:

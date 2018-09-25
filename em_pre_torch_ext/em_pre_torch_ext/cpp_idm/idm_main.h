@@ -1,7 +1,8 @@
-#include <float.h>
-#include <stdint.h>
-#include <stdio.h>
 
-void idm_dist(float *img1, float *img2, float *out, 
-        int im_row, int im_col, int im_chan, 
+#include <ATen/ATen.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <limits>
+
+at::Tensor idm_dist(const at::Tensor &img1, const at::Tensor &img2,
         int patch_sz, int warp_sz, int step, int metric);

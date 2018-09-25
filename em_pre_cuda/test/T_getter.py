@@ -13,7 +13,7 @@ import cProfile
 profiler = cProfile.Profile()
 
 INPUT_FILE_PATH = "/home/matinraayai/cerebellum_test_chunk.h5"
-s_getter = h5_slice_getter(INPUT_FILE_PATH, ThresholdPreProcess((150, -1)), 200, 'main', 'cuda:0', caching_limit=1)
+s_getter = h5_slice_getter(INPUT_FILE_PATH, ThresholdPreProcess((150, -1)), 3, 'main', 'cuda:0', caching_limit=10)
 s_filter = PyTorch2dConvolution(15, 'cuda:0')
 t_filter = PyTorchExtMedian()
 s_getter.start()
@@ -24,7 +24,7 @@ for i in range(100):
 """
 
 
-s_writer = png_slice_writer('./', '%d.png', 20)
+s_writer = png_slice_writer('./', '%d.png', 2)
 s_writer.start()
 
 

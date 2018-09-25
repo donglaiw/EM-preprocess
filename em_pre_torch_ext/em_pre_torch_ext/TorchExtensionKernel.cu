@@ -105,7 +105,6 @@ void __median_3d(scalar_t* __restrict__ imStackIn, scalar_t* __restrict__ sliceO
 }
 
 
-
 template<typename scalar_t>
 __global__
 void __median_3d(scalar_t* __restrict__ imStackIn, scalar_t* __restrict__ imStackOut, int32_t dimX, int32_t dimY,
