@@ -1,3 +1,3 @@
-from .deflicker import deflicker
-from . import pre_process, slice_getters, spatial, temporal, writer
+from .deflicker import de_flicker
+from . import pre_process, slice_getters, spatial, temporal, writer, loader
 

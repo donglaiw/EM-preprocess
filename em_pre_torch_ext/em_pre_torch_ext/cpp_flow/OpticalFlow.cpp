@@ -39,6 +39,7 @@ void OpticalFlow::getDxs(DImage &imdx, DImage &imdy, DImage &imdt, const DImage 
 		//DImage foo,Im;
 		//Im.Add(im1,im2);
 		//Im.Multiplywith(0.5);
+		//Im.Multiplywith(0.5);
 		////foo.imfilter_hv(Im,gfilter,2,gfilter,2);
 		//Im.dx(imdx,true);
 		//Im.dy(imdy,true);
