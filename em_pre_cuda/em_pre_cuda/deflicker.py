@@ -40,7 +40,9 @@ def _pre_process(image, global_stat, method='naive', sampling_step=10, mask_thre
 
     elif method == 'threshold':
         if global_stat is not None:
-            im_copy = image[::sampling_step, ::sampling_step]
+            im_x = image.shape[0] / 3
+            im_y = image.shape[1] / 3
+            im_copy = image[im_x:im_x * 2:sampling_step, im_y:im_y * 2:sampling_step]
             if mask_thres[0] is not None:
                 im_copy = im_copy[im_copy > mask_thres[0]]
             if mask_thres[1] is not None:
@@ -71,7 +73,7 @@ def _temporal_filter(ims, window, method):
 
 def _create_t_flt_window(method, radius):
     if method == 'median':
-        return torch.tensor([0, 0, radius], device='cpu', dtype=torch.float32)
+        return torch.tensor([0, 0, radius], device='cpu')
     else:
         raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
 

@@ -18,7 +18,7 @@ profiler_cpu = cProfile.Profile()
 profiler_gpu = cProfile.Profile()
 
 # Constants:
-INPUT_FILE_DIR = 'test_data.h5'
+INPUT_FILE_DIR = '/home/matinraayai/cerebellum_test_chunk.h5'
 OUTPUT_FILE_DIR = 'Test Results'
 DATASET_NAME = 'main'
 BATCH_STACK_SIZE = 5
@@ -35,7 +35,7 @@ class TestMedian(unittest.TestCase):
 
     def _median_cuda(self, ims, flt_shape):
         ims_cuda = torch.from_numpy(ims).cuda()
-        filter_torch = torch.tensor(flt_shape, device='cpu', dtype=torch.float32) / 2
+        filter_torch = torch.tensor(flt_shape) / 2
         output = em_pre_torch_ext.median_filter(ims_cuda, filter_torch)
         return output.cpu().numpy()
 
@@ -45,8 +45,6 @@ class TestMedian(unittest.TestCase):
     def test_median(self):
         in_ims = self._read_h5(INPUT_FILE_DIR, DATASET_NAME)
         out_ims_shape = in_ims.shape
-        out_cuda = np.zeros(out_ims_shape)
-        out_cpu = np.zeros(out_ims_shape)
         profiler_cpu.enable()
         out_cpu = self._median_cpu(in_ims, FILTER_DIMS)
         profiler_cpu.disable()

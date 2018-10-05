@@ -9,7 +9,17 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #define BLOCK_DIM_LEN 8
-#define MAX_GPU_ARRAY_LEN 200
+#define MAX_GPU_ARRAY_LEN 10
+
+at::Tensor cuda_median_3d(const at::Tensor& imStack);
+
+template<typename scalar_t>
+__global__
+void __median_3d(scalar_t* __restrict__ stackIn,
+                 scalar_t* __restrict__ stackOut,
+                 int32_t dimX,
+                 int32_t dimY,
+                 int32_t dimZ);
 
 at::Tensor cuda_median_3d(const at::Tensor& imStack, const at::Tensor& filtRads);
 

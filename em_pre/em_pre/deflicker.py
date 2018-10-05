@@ -4,7 +4,7 @@ import numpy as np
 import h5py
 import scipy.ndimage as nd
 
-def preprocess(im, globalStat=None, globalStatOpt=0):
+def preprocess(im, globalStat=None, globalStatOpt=0, global_stat_sz = 10, mask_thres=(10, 245)):
     # im: x,y,t
     if globalStatOpt == 0:
         # mean/std
@@ -19,6 +19,21 @@ def preprocess(im, globalStat=None, globalStatOpt=0):
             else:
                 if globalStat[0]>0:
                     im = im-mm+globalStat[0]
+    if globalStatOpt == 1:
+        im_x = im.shape[0] / 3
+        im_y = im.shape[1] / 3
+        im_copy = im[im_x:im_x * 2:global_stat_sz, im_y:im_y * 2:global_stat_sz].copy().astype(np.float32)
+        if mask_thres[0] is not None:
+            im_copy[im_copy<mask_thres[0]] = np.nan
+        if mask_thres[1] is not None:
+            im_copy[im_copy>mask_thres[1]]= np.nan
+            # np.mean(imTensor.astype(np.float32),axis=(0,1))
+        im = im - np.nanmedian(im_copy, axis=(0,1))+globalStat[0]
+        if mask_thres[0] is not None: # for artifact/boundary
+            im[im<mask_thres[0]] = mask_thres[0]
+        #imTensor[maskInd[0]] = mask_thres[0]
+        if mask_thres[1] is not None: # for blood vessel
+            im[im>mask_thres[1]] = mask_thres[1]
     return im
 
 def deflicker_batch(ims, opts=[0,0,0], globalStat=None, filterS_hsz=[15,15], filterT_hsz=2):
