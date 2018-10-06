@@ -40,6 +40,6 @@ class cv2Mean:
         diam = 2 * filter_rad + 1
         self.filter = np.ones((diam,) * 2, dtype=np.float32) / (diam ** 2)
 
-    def __Call__(self, ims):
+    def __call__(self, ims):
         ims_numpy = ims.numpy()
         return torch.from_numpy(cv2.filter2D(ims_numpy, -1, self.filter, borderType=cv2.BORDER_REFLECT_101))
