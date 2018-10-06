@@ -20,7 +20,7 @@ class NaivePreProcess:
 
 
 class ThresholdPreProcess:
-    def __init__(self, global_stat=None, sampling_step=10, x_sample_portion=3, y_sample_portion=1,
+    def __init__(self, global_stat=None, sampling_step=1, x_sample_portion=3, y_sample_portion=1,
                  mask_threshold=(10, 245)):
         self.global_stat = global_stat
         self.sampling_step = sampling_step
@@ -31,11 +31,14 @@ class ThresholdPreProcess:
     def __call__(self, image):
         if self.global_stat is None:
             self.global_stat = (image.mean(), image.std())
-        im_dim = image.size()
-        x_id_1 = im_dim[0] / self.x_sampled_portion
-        x_id_2 = (self.x_sampled_portion - 1) * im_dim[0] / self.x_sampled_portion
-        y_id_1 = im_dim[1] / self.y_sampled_portion
-        y_id_2 = (self.y_sampled_portion - 1) * im_dim[1] / self.y_sampled_portion
+        x_id_1, y_id_1 = (0, 0)
+        x_id_2, y_id_2 = image.size()
+        if (self.x_sampled_portion > 1):
+            x_id_1 = x_id_2 / self.x_sampled_portion
+            x_id_2 = x_id_2 * (self.x_sampled_portion - 1) / self.x_sampled_portion
+        if (self.y_sampled_portion > 1):
+            y_id_1 = y_id_2 / self.y_sampled_portion
+            y_id_2 = y_id_2 * (self.y_sampled_portion - 1) / self.y_sampled_portion
         im_copy = image[x_id_1:x_id_2:self.sampling_step, y_id_1:y_id_2:self.sampling_step]
         if self.mask_threshold[0] is not None:
             im_copy = im_copy[im_copy > self.mask_threshold[0]]
