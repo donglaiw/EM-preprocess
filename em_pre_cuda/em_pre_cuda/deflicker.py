@@ -7,13 +7,10 @@
 
 import torch
 
-# TODO: Implement in C++ maybe?
-
 
 def de_flicker(slices, spatial_filter, temporal_filter):
-    num_slices = slices.size(0)
-    im_id = num_slices / 2
-    mean_tensor = slices
+    im_id = len(slices) / 2
+    mean_tensor = torch.stack([spatial_filter(slc) for slc in slices])
     filter_r = temporal_filter(mean_tensor)
     filter_rd = filter_r - mean_tensor[im_id]
     im_diff = spatial_filter(filter_rd)

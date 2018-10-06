@@ -9,26 +9,7 @@ import em_pre_torch_ext
 from abc import ABCMeta, abstractmethod
 from scipy import ndimage as nd
 
-
-class TemporalFilter:
-    """
-    Base class for any temporal filtering used in the de-flickering algorithm. The __init__ method is used to pass any
-    necessary argument and the __call__ method makes it easy to call this as a function on a 3D PyTorch Tensor.
-    Usually, the window used by the concrete classes is [1, 1, len(ims)].
-    """
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def __call__(self, ims):
-        """
-        Calls the temporal filtering algorithm on a 3D PyTorch Tensor.
-        :param ims: The stack of EM-slices as a 3D PyTorch Tensor.
-        :return: The middle slice off of the result of temporal filtering.
-        """
-        pass
-
-
-class PyTorchExtMinimalMedian(TemporalFilter):
+class PyTorchExtMinimalMedian(function):
 
     def __init__(self):
         pass
@@ -37,7 +18,7 @@ class PyTorchExtMinimalMedian(TemporalFilter):
         return em_pre_torch_ext.median_filter(ims)
 
 
-class PyTorchExtMedian(TemporalFilter):
+class PyTorchExtMedian(function):
     """
     Temporal filtering using em_pre_torch_ext's 3D median filter.
     """
@@ -45,11 +26,11 @@ class PyTorchExtMedian(TemporalFilter):
         pass
 
     def __call__(self, ims):
-        window = torch.tensor([0, 0, len(ims) / 2], dtype=torch.float32)
+        window = [len(ims) / 2, 0, 0]
         return em_pre_torch_ext.median_filter(ims, window)[len(ims) / 2]
 
 
-class NdImageMedian(TemporalFilter):
+class NdImageMedian(function):
     """
     Temporal Filtering using scipy.ndimage.median_filter.
     """
@@ -58,5 +39,5 @@ class NdImageMedian(TemporalFilter):
         pass
 
     def __call__(self, ims):
-        size = [1, 1, len(ims)]
+        size = [len(ims), 1, 1]
         return nd.median_filter(ims.numpy(), size=size)
