@@ -32,7 +32,7 @@ init_slc_range.reverse()
 slc_window = [pp(im_read(i)) for i in init_slc_range]
 for i in range(MEDIAN_FILTER_RAD - 1, -1, -1):
     slc_window.append(slc_window[i])
-for i in SLICE_RANGE[:-MEDIAN_FILTER_RAD]:
+for i in SLICE_RANGE:
     print "Processing slice %d" % i
     d_out = de_flicker(slc_window, s_filter, t_filter)
     out = d_out.cpu().numpy()
