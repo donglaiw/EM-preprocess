@@ -7,7 +7,6 @@
 
 import torch
 
-
 def de_flicker(slices, spatial_filter, temporal_filter):
     im_id = len(slices) / 2
     mean_tensor = torch.stack([spatial_filter(slc) for slc in slices])

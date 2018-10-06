@@ -1,7 +1,7 @@
 import cProfile
 import sys
 from em_pre_cuda.pre_process import ThresholdPreProcess
-from em_pre_cuda.spatial import PyTorch2dConvolution
+from em_pre_cuda.spatial import PyTorch2dMean
 from em_pre_cuda.temporal import PyTorchExtMedian, NdImageMedian
 from em_pre_cuda import de_flicker
 import h5py
@@ -10,15 +10,15 @@ import cv2
 
 DEVICE = torch.device(sys.argv[3]) # Either 'cpu' or 'gpu'
 print "Using %s device." % DEVICE
-INPUT_FILE_PATH = "/home/matinraayai/cerebellum_test_chunk.h5"
+INPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/data_h5/cerebellum_ds_orig.h5"
 OUTPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 PROFILER_OUTPUT_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 MEAN_FILTER_RAD = 15
 MEDIAN_FILTER_RAD = 2
 SLICE_RANGE = range(int(sys.argv[1]), int(sys.argv[2]))
 
-pp = ThresholdPreProcess((150, -1))
-s_filter = PyTorch2dConvolution(MEAN_FILTER_RAD)
+pp = ThresholdPreProcess((150, -1), y_sample_portion=3)
+s_filter = PyTorch2dMean(MEAN_FILTER_RAD)
 t_filter = PyTorchExtMedian() if DEVICE.type == "cuda" else NdImageMedian()
 profiler = cProfile.Profile()
 

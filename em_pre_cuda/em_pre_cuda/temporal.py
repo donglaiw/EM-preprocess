@@ -2,13 +2,14 @@
  * Name: temporal.py
  * Author(s): Donglai Wei, Matin Raayai Ardakani
  * Email(s): weiddoonngglai@gmail.com, raayai.matin@gmail.com
- * Specification of temporal filtering for the deflicker algorithm.
+ * Specification of temporal filtering for the de-flicker algorithm. These object are callable on a stack of 2D tensors
+ with a size of (z, x, y)
  ********************************************************************************************************************"""
 import em_pre_torch_ext
 from scipy import ndimage as nd
+import torch
 
 class PyTorchExtMinimalMedian:
-
     def __init__(self):
         pass
 
@@ -38,4 +39,4 @@ class NdImageMedian:
 
     def __call__(self, ims):
         size = [len(ims), 1, 1]
-        return nd.median_filter(ims.numpy(), size=size)[len(ims) / 2]
+        return torch.from_numpy(nd.median_filter(ims.numpy(), size=size)[len(ims) / 2])
