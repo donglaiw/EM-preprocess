@@ -3,7 +3,7 @@ import sys
 from em_pre_cuda.pre_process import ThresholdPreProcess
 from em_pre_cuda.spatial import PyTorch2dConvolution
 from em_pre_cuda.temporal import PyTorchExtMedian, NdImageMedian
-from em_pre_cuda.deflicker import de_flicker
+from em_pre_cuda import de_flicker
 import h5py
 import torch
 import cv2

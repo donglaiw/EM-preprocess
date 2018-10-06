@@ -10,7 +10,7 @@ import numpy as np
 import unittest
 import torch
 import em_pre_torch_ext
-from T_util import writeh5
+from script.T_util import writeh5
 import h5py
 import scipy.ndimage as nd
 import cProfile

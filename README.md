@@ -1,14 +1,10 @@
-# Toolbox for data preprocess
+# CUDA-enabled Toolbox for data preprocess using PyTorch
 
 ## Functionalities
 - deflicker: smooth intensity changes over space and slices
 
-- image deformable model:
-
-- interpolation: automatically find regions to interpolate and use simple
-  optical method to interpolate
 
 ## Applications
-1. Artefacts removal for volumetric data (e.g. electron microscope images):
+1. Artifacts removal for volumetric data (e.g. electron microscope images):
 
 2. Video shot segmentation
