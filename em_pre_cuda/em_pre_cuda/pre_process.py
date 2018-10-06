@@ -1,5 +1,5 @@
 
-class NaivePreProcess(function):
+class NaivePreProcess:
     def __init__(self, global_stat=None):
         self.global_stat = global_stat
 
@@ -19,7 +19,7 @@ class NaivePreProcess(function):
         return image
 
 
-class ThresholdPreProcess(function):
+class ThresholdPreProcess:
     def __init__(self, global_stat=None, sampling_step=10, x_sample_portion=3, y_sample_portion=1,
                  mask_threshold=(10, 245)):
         self.global_stat = global_stat
