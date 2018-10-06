@@ -14,7 +14,7 @@ OUTPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 PROFILER_OUTPUT_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 MEAN_FILTER_RAD = 15
 MEDIAN_FILTER_RAD = 2
-SLICE_RANGE = range(sys.argv[1], sys.argv[2], sys.argv[3])
+SLICE_RANGE = range(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]))
 
 pp = ThresholdPreProcess((150, -1))
 s_filter = PyTorch2dConvolution(MEAN_FILTER_RAD)
