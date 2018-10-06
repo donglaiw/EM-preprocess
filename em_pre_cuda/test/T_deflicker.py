@@ -9,7 +9,7 @@ import torch
 import cv2
 
 DEVICE = torch.device(sys.argv[3]) # Either 'cpu' or 'gpu'
-print "Using device %s." % DEVICE
+print "Using %s device." % DEVICE
 INPUT_FILE_PATH = "/home/matinraayai/cerebellum_test_chunk.h5"
 OUTPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 PROFILER_OUTPUT_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
@@ -33,7 +33,7 @@ slc_window = [pp(im_read(i)) for i in init_slc_range]
 for i in range(MEDIAN_FILTER_RAD - 1, -1, -1):
     slc_window.append(slc_window[i])
 for i in SLICE_RANGE:
-    print "Processing slice %d" % i
+    print "Processing slice %d..." % i
     d_out = de_flicker(slc_window, s_filter, t_filter)
     out = d_out.cpu().numpy()
     cv2.imwrite(OUTPUT_FILE_PATH % (DEVICE, i), out)

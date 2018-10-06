@@ -38,4 +38,4 @@ class NdImageMedian:
 
     def __call__(self, ims):
         size = [len(ims), 1, 1]
-        return nd.median_filter(ims.numpy(), size=size)
+        return nd.median_filter(ims.numpy(), size=size)[len(ims) / 2]
