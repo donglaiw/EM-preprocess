@@ -1,7 +1,7 @@
 import cProfile
 import sys
 from em_pre_cuda.pre_process import ThresholdPreProcess
-from em_pre_cuda.spatial import PyTorch2dMean
+from em_pre_cuda.spatial import PyTorch2dMean, cv2Mean
 from em_pre_cuda.temporal import PyTorchExtMedian, NdImageMedian
 from em_pre_cuda import de_flicker
 import h5py
@@ -10,7 +10,7 @@ import cv2
 
 DEVICE = torch.device(sys.argv[3]) # Either 'cpu' or 'gpu'
 print "Using %s device." % DEVICE
-INPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/data_h5/cerebellum_ds_orig.h5"
+INPUT_FILE_PATH = "/home/matinraayai/cerebellum_test_chunk.h5"
 OUTPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 PROFILER_OUTPUT_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 MEAN_FILTER_RAD = 15
@@ -18,7 +18,7 @@ MEDIAN_FILTER_RAD = 2
 SLICE_RANGE = range(int(sys.argv[1]), int(sys.argv[2]))
 
 pp = ThresholdPreProcess((150, -1), y_sample_portion=3)
-s_filter = PyTorch2dMean(MEAN_FILTER_RAD)
+s_filter = PyTorch2dMean(MEAN_FILTER_RAD) if DEVICE.type == "cuda" else cv2Mean(MEAN_FILTER_RAD)
 t_filter = PyTorchExtMedian() if DEVICE.type == "cuda" else NdImageMedian()
 profiler = cProfile.Profile()
 
@@ -32,16 +32,16 @@ init_slc_range.reverse()
 slc_window = [pp(im_read(i)) for i in init_slc_range]
 for i in range(MEDIAN_FILTER_RAD - 1, -1, -1):
     slc_window.append(slc_window[i])
-for i in SLICE_RANGE:
-    print "Processing slice %d..." % i
+for i, idx in enumerate(SLICE_RANGE):
+    print "Processing slice %d..." % idx
     d_out = de_flicker(slc_window, s_filter, t_filter)
     out = d_out.cpu().numpy()
-    cv2.imwrite(OUTPUT_FILE_PATH % (DEVICE, i), out)
-    del slc_window[0]
-    if i >= SLICE_RANGE[-MEDIAN_FILTER_RAD - 1]:
-        slc_window.append(slc_window[2])
+    cv2.imwrite(OUTPUT_FILE_PATH % (DEVICE, idx), out)
+    slc_window = slc_window[1:]
+    if idx >= SLICE_RANGE[-MEDIAN_FILTER_RAD - 1]:
+        slc_window.append(slc_window[0])
     else:
-        slc_window.append(pp(im_read(SLICE_RANGE[i + MEDIAN_FILTER_RAD])))
+        slc_window.append(pp(im_read(SLICE_RANGE[i + MEDIAN_FILTER_RAD + 1])))
 profiler.disable()
 profiler.print_stats(1)
 profiler.dump_stats(PROFILER_OUTPUT_PATH % (DEVICE, SLICE_RANGE[0]))
