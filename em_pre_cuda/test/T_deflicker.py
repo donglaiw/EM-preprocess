@@ -10,7 +10,7 @@ import cv2
 
 DEVICE = torch.device(sys.argv[3]) # Either 'cpu' or 'gpu'
 print "Using %s device." % DEVICE
-INPUT_FILE_PATH = "/home/matinraayai/cerebellum_test_chunk.h5"
+INPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/Data/cerebellum_test_chunk.h5"
 OUTPUT_FILE_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 PROFILER_OUTPUT_PATH = "/n/coxfs01/donglai/ppl/matin/test_output/df_%s_%d.png"
 MEAN_FILTER_RAD = 15
