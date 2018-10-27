@@ -15,7 +15,7 @@ EMAIL = "weiddoonngglai@gmail.com, raayai.matin@gmail.com"
 LICENSE = "Apache 2.0"
 SRC_DIR = "em_pre_torch_ext"
 EXTENSION = []
-EXTENSION += [CUDAExtension(NAME, [SRC_DIR + '/TorchExtension.cpp', SRC_DIR + '/TorchExtensionKernel.cu'])]
+EXTENSION += [CUDAExtension(NAME, [SRC_DIR + '/TorchExtension.cpp', SRC_DIR + '/median/MedianFilter.cu'])]
 
 
 setup(
