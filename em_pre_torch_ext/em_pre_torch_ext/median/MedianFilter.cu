@@ -5,7 +5,7 @@
  * Contains the CUDA kernels written using Pytorch's Aten backend.
  * For function documentation, refer to the associated header file.
  **********************************************************************************************************************/
- #include "TorchExtensionKernel.h"
+ #include "MedianFilter.h"
 
 
 at::Tensor median_filter_cuda(const at::Tensor& imStack) {
@@ -58,10 +58,6 @@ void median_filter_kernel(scalar_t* __restrict__ stackIn,
         int32_t dimX,
         int32_t dimY,
         int32_t dimZ) {
-    auto get_1d_idx = [&] (int32_t x, int32_t y, int32_t z) {
-        return clamp_mirror(z, 0, dimZ - 1) * dimY * dimX +
-        clamp_mirror(y, 0, dimY - 1) * dimX + clamp_mirror(x, 0, dimX - 1);
-    };
 
     const int32_t col_idx = blockIdx.x * blockDim.x + threadIdx.x;
 	const int32_t row_idx = blockIdx.y * blockDim.y + threadIdx.y;
@@ -69,16 +65,16 @@ void median_filter_kernel(scalar_t* __restrict__ stackIn,
 	scalar_t windowVec[MAX_GPU_ARRAY_LEN] = {0.};
     int32_t vSize = 0;
 
-    for (int32_t z = -dimZ; z <= dimZ; z++)
-        windowVec[vSize++] = stackIn[get_1d_idx(col_idx, row_idx, sht_idx + z)];
-
-    imOut[get_1d_idx(col_idx, row_idx, sht_idx)] = get_median_of_array(windowVec, vSize);
+    for (int32_t z = -dimZ / 2; z <= dimZ / 2; z++)
+        windowVec[vSize++] = stackIn[get_mirrored_idx(col_idx, row_idx, sht_idx + z, dimX, dimY, dimZ)];
+    if (check_bounds(col_idx, row_idx, dimX, dimY))
+        imOut[get_1d_idx(col_idx, row_idx, dimX, dimY)] = calculate_median(windowVec, vSize);
 }
 
 
 template<typename scalar_t>
 __global__
-void __median_3d(scalar_t* __restrict__ stackIn,
+void median_filter_kernel(scalar_t* __restrict__ stackIn,
         scalar_t* __restrict__ stackOut,
         int32_t dimX,
         int32_t dimY,
@@ -87,11 +83,6 @@ void __median_3d(scalar_t* __restrict__ stackIn,
         int32_t radY,
         int32_t radZ)
     {
-    auto get_1d_idx = [&] (int32_t x, int32_t y, int32_t z) {
-        return clamp_mirror(z, 0, dimZ - 1) * dimY * dimX + 
-        clamp_mirror(y, 0, dimY - 1) * dimX + clamp_mirror(x, 0, dimX - 1);
-    };
-
     const int32_t col_idx = blockIdx.x * blockDim.x + threadIdx.x;
 	const int32_t row_idx = blockIdx.y * blockDim.y + threadIdx.y;
     const int32_t sht_idx = blockIdx.z * blockDim.z + threadIdx.z;
@@ -102,7 +93,7 @@ void __median_3d(scalar_t* __restrict__ stackIn,
     for (int32_t z = -radZ; z <= radZ; z++)
     for (int32_t y = -radY; y <= radY; y++)
     for (int32_t x = -radX; x <= radX; x++)
-        windowVec[vSize++] = stackIn[get_1d_idx(x + col_idx, y + row_idx, z + sht_idx)];
-
-    stackOut[get_1d_idx(col_idx, row_idx, sht_idx)] = calculate_median(windowVec, vSize);
+        windowVec[vSize++] = stackIn[get_mirrored_idx(x + col_idx, y + row_idx, z + sht_idx, dimX, dimY, dimZ)];
+    if(check_bounds(col_idx, row_idx, sht_idx, dimX, dimY, dimZ))
+        stackOut[get_1d_idx(col_idx, row_idx, sht_idx, dimX, dimY, dimZ)] = calculate_median(windowVec, vSize);
 }

@@ -4,8 +4,7 @@
  * Email: raayai.matin@gmail.com
  **********************************************************************************************************************/
 #include <ATen/ATen.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include "../helper/Helper.h"
 #define BLOCK_DIM_LEN 8
 // This constant is used to create an array of numbers in each GPU kernel to be sorted in the 3d median filter.
 // Ideally, it shouldn't be present since it would limit the window size of the 3D median filter and also allocating
@@ -16,26 +15,6 @@
 // result in undefined behavior.
 #define MAX_GPU_ARRAY_LEN 20
 
-
-/**
- * Makes sure the given index is "clamped" within the specified minIdx and maxIdx by mirroring the idx with respect
- * to the bounds until it lands in the idx range of the array recursively. It's used to create a "mirroring" effect
- * for the median filter.
- * @param idx desired index of the array to be accessed.
- * @param minIdx the first index of the array. If the idx is smaller than this value, minIdx + (minIdx - idx) will be
- * the potential index within bounds.
- * @param maxIdx the last index of the array. If the idx is larger than this value, maxIdx - (idx - maxIdx) will be the
- * potential index within bounds.
- * @return an index within the specified bounds that satisfies the mirroring behavior of the median filter.
- */
-inline __device__ __host__ int32_t clamp_mirror(int32_t idx, int32_t minIdx, int32_t maxIdx)
-{
-    if(idx < minIdx) return clamp_mirror(minIdx + (minIdx - idx), minIdx, maxIdx);
-    else if(idx > maxIdx) return clamp_mirror(maxIdx - (idx - maxIdx), minIdx, maxIdx);
-    else return idx;
-}
-
-
 /**
  * Calculates the median of a vector by sorting it and returning the middle element of the vector.
  * @tparam scalar_t type of the elements in the array
@@ -44,7 +23,7 @@ inline __device__ __host__ int32_t clamp_mirror(int32_t idx, int32_t minIdx, int
  * @return the median of the vector.
  * */
 template<typename scalar_t>
-inline __device__ __host__ scalar_t calculate_median(scalar_t* &vector, int32_t size)
+inline __device__ __host__ scalar_t calculate_median(scalar_t* vector, int32_t size)
 {
     for (int32_t i = 0; i < size; i++){
     for (int32_t j = i + 1; j < size; j++){
@@ -69,10 +48,12 @@ at::Tensor median_filter_cuda(const at::Tensor &imStack);
 /**
  * Applies a median filter with window dimensions specified in filtRads.
  * @param imStack The desired input image stack.
- * @param filtRads The radius dims of the median filter.
+ * @param radX X radius of the median filter window.
+ * @param radY Y radius of the median filter window.
+ * @param radZ Z radius of the median filter window.
  * @return the result of the median filter operation.
  */
-at::Tensor median_filter_cuda(const at::Tensor &imStack, const at::Tensor &filtRads);
+at::Tensor median_filter_cuda(const at::Tensor& imStack, const int radX, const int radY, const int radZ);
 
 /**
  * Calculates the median filter of stackIn along the z-axis and returns the middle slice of the result in stackOut. The

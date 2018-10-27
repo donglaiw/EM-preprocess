@@ -7,10 +7,7 @@
 #pragma once
 #include <torch/torch.h>
 #include <vector>
-
-at::Tensor cuda_median_3d(const at::Tensor& sliceStack);
-
-at::Tensor cuda_median_3d(const at::Tensor& sliceStack, int radX, int radY, int radZ);
+#include "median/MedianFilter.h"
 
 
 #define CHECK_TENSOR_IS_CUDA(x) AT_CHECK(x.type().is_cuda(), #x " must be a CUDA tensor")

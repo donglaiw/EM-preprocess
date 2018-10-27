@@ -23,21 +23,7 @@ scalar_t patch_distance (int A_x,int A_y, int B_x, int B_y, int im_row, int im_c
     return dist / count;
 }
 
-inline __host__ __device__ int get_1d_idx(x, y, dimX, dimY) {
-    return y * dimX + x; 
-}
 
-inline __host__ __device__ int get_1d_idx(x, y, z, dimX, dimY, dimZ) {
-    return z * dimY * dimX + y * dimX + x;
-}
-
-inline __host__ __device__ bool check_bounds(x, y, z, dimX, dimY, dimZ) {
-    return x >= 0 && y >= 0 && z >= 0 && x < dimX && y < dimY && z < dimZ;
-}
-
-inline __host__ __device__ bool check_bounds(x, y, dimX, dimY) {
-    return x >= 0 && y >= 0 && x < dimX && y < dimY;
-}
 
 
 at::Tensor idm_dist(const at::Tensor &img1, const at::Tensor &img2,

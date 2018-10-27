@@ -6,10 +6,12 @@
  objects are callable on a single 2D Pytorch tensor.
  ********************************************************************************************************************"""
 
+
 class NaivePreProcess:
     """
     Uses the whole image's mean and std to adjust the image's lighting globally.
     """
+
     def __init__(self, global_stat=None):
         self.global_stat = global_stat
 
@@ -33,6 +35,7 @@ class ThresholdPreProcess:
     """
     Uses a specified down-sampled chunk of the image's median to adjust the image's pixel values.
     """
+
     def __init__(self, global_stat=None, sampling_step=1, x_sample_portion=3, y_sample_portion=1,
                  mask_threshold=(10, 245)):
         self.global_stat = global_stat
@@ -46,10 +49,10 @@ class ThresholdPreProcess:
             self.global_stat = (image.mean(), image.std())
         x_id_1, y_id_1 = (0, 0)
         x_id_2, y_id_2 = image.size()
-        if (self.x_sampled_portion > 1):
+        if self.x_sampled_portion > 1:
             x_id_1 = x_id_2 / self.x_sampled_portion
             x_id_2 = x_id_2 * (self.x_sampled_portion - 1) / self.x_sampled_portion
-        if (self.y_sampled_portion > 1):
+        if self.y_sampled_portion > 1:
             y_id_1 = y_id_2 / self.y_sampled_portion
             y_id_2 = y_id_2 * (self.y_sampled_portion - 1) / self.y_sampled_portion
         im_copy = image[x_id_1:x_id_2:self.sampling_step, y_id_1:y_id_2:self.sampling_step]
