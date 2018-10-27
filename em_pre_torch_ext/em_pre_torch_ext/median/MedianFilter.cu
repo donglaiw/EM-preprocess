@@ -5,7 +5,7 @@
  * Contains the CUDA kernels written using Pytorch's Aten backend.
  * For function documentation, refer to the associated header file.
  **********************************************************************************************************************/
- #include "TorchExtensionKernel.h"
+ #include "MedianFilter.h"
 
 
 at::Tensor median_filter_cuda(const at::Tensor& imStack) {
