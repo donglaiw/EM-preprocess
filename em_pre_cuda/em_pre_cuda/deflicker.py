@@ -7,7 +7,7 @@
 
 import cv2
 import torch
-import em_pre_torch_ext
+import em_torch_ext
 from torch.nn.functional import conv2d, pad
 import numpy as np
 
@@ -66,7 +66,7 @@ def _spatial_filter(img, kernel, padding):
 
 def _temporal_filter(ims, window, method):
     if method == 'median':
-        return em_pre_torch_ext.median_filter(ims, window)
+        return em_torch_ext.median_filter(ims, window)
     else:
         raise NotImplementedError("The passed global stat op argument (%s) is not implemented." % method)
 

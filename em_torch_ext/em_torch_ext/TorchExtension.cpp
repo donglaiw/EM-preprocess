@@ -9,14 +9,14 @@
 //TODO: Create a Hashmap that holds the documentation for each function.
 
 at::Tensor median_filter_v2(const at::Tensor& sliceStack) {
-    CHECK_TENSOR_IS_CUDA(sliceStack);
+//    CHECK_TENSOR_IS_CUDA(sliceStack);
     //Check if imStack has a float ScalarType
     return cuda_median_3d(sliceStack);
 }
 
 at::Tensor median_filter(const at::Tensor& sliceStack, const at::Tensor& filtRads) {
-    CHECK_TENSOR_IS_CUDA(sliceStack);
-    CHECK_TENSOR_IS_CPU(filtRads);
+//    CHECK_TENSOR_IS_CUDA(sliceStack);
+//    CHECK_TENSOR_IS_CPU(filtRads);
     auto f_copy = filtRads;
     //TODO: Make this accept all types.
     auto fa = f_copy.accessor<long, 1>();
@@ -27,7 +27,7 @@ at::Tensor median_filter(const at::Tensor& sliceStack, const at::Tensor& filtRad
 }
 
 at::Tensor median_filter_v3(const at::Tensor& sliceStack, const std::vector<int> filtRads) {
-    CHECK_TENSOR_IS_CUDA(sliceStack);
+//    CHECK_TENSOR_IS_CUDA(sliceStack);
     return cuda_median_3d(sliceStack, filtRads[2], filtRads[1], filtRads[0]);
 }
 

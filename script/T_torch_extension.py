@@ -7,7 +7,7 @@
 import numpy as np
 import unittest
 import torch
-import em_pre_torch_ext
+import em_torch_ext
 from T_util import writeh5
 import h5py
 import scipy.ndimage as nd
@@ -36,7 +36,7 @@ class TestMedian(unittest.TestCase):
     def _median_cuda(self, ims, flt_shape):
         ims_cuda = torch.from_numpy(ims).cuda()
         filter_torch = torch.tensor(flt_shape) / 2
-        output = em_pre_torch_ext.median_filter(ims_cuda, filter_torch)
+        output = em_torch_ext.median_filter(ims_cuda, filter_torch)
         return output.cpu().numpy()
 
     def test_check_cuda(self):
