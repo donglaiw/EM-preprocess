@@ -6,9 +6,9 @@
  ********************************************************************************************************************"""
 from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
-NAME = "em_pre_ext"
-VERSION = "0.0.1"
-DESCR = "Pytorch C++/CUDA extensions needed for the package em_pre_cuda."
+NAME = "em_torch_ext"
+VERSION = "0.1"
+DESCR = "Pytorch C++/CUDA extensions needed for other EM Python packages."
 REQUIRES = ['torch']
 AUTHOR = "Donglai Wei, Matin Raayai Ardakani"
 EMAIL = "weiddoonngglai@gmail.com, matinraayai@seas.harvard.edu"

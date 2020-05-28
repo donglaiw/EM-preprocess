@@ -31,7 +31,7 @@ def getTensor(D0, sliceNames, xId, yId, zId, imSize=None, suf=''):
                            numSlice), dtype=np.float32)
     # I/O speed bound, not memory bound
     for i,zId in enumerate(zIds):
-        print zId
+        print(zId)
         if zId>0 and sliceNames[zId] == sliceNames[zId-1]: # missing slice
             imTensor[:,:,i] = imTensor[:,:,i-1].copy()
         else:
