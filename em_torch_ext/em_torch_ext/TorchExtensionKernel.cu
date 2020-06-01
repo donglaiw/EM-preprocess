@@ -23,17 +23,16 @@ inline __device__ __host__ int clamp_mirror(int idx, int minIdx, int maxIdx)
     else return idx;
 }
 
-
 template<typename scalar_t>
 __device__ __host__ scalar_t get_median_of_array(scalar_t* vector, int size)
 {
     for (int32_t i = 0; i < size; i++) {
     for (int32_t j = i + 1; j < size; j++) {
-            if (vector[i] > vector[j]) {
-                scalar_t tmp = vector[i];
-                vector[i] = vector[j];
-                vector[j] = tmp;
-            }
+        if (vector[i] > vector[j]) {
+            scalar_t tmp = vector[i];
+            vector[i] = vector[j];
+            vector[j] = tmp;
+        }
     }}
     return vector[size / 2];
 }
@@ -59,8 +58,6 @@ void __median_3d(scalar_t* __restrict__ imStackIn, scalar_t* __restrict__ sliceO
     sliceOut[get_1d_idx(col_idx, row_idx, sht_idx)] = get_median_of_array(windowVec, vSize);
 }
 
-
-
 template<typename scalar_t>
 __global__
 void __median_3d(scalar_t* __restrict__ imStackIn, scalar_t* __restrict__ imStackOut, int32_t dimX, int32_t dimY,
@@ -85,6 +82,83 @@ void __median_3d(scalar_t* __restrict__ imStackIn, scalar_t* __restrict__ imStac
 
     imStackOut[get_1d_idx(col_idx, row_idx, sht_idx)] = get_median_of_array(windowVec, vSize);
 }
+
+//template<typename scalar_t>
+//__global__
+//scalar_t __patch_distance (const int A_x, const int A_y, const int B_x, const int B_y,
+//                           const int im_row, const int im_col, const int im_chan,
+//                           const int patch_sz, scalar_t *img1, scalar_t *img2, int metric){
+//    scalar_t dist = 0, temp_h;
+//    int c, x, y, count = 0;
+//    /* only move around patchB */
+//    int pre = im_col * im_chan;
+//    scalar_t patch_sum = 0;
+//
+//    switch(metric) {
+//        case 0: // L1
+//            for(y = -patch_sz; y <= patch_sz; y++){
+//            for(x = -patch_sz; x <= patch_sz; x++){
+//                if((A_x + x) >= 0 && (A_y + y) >= 0 && (A_x + x) < im_row && (A_y + y) < im_col &&
+//                   (B_x + x) >= 0 && (B_y + y) >= 0 && (B_x + x) < im_row && (B_y + y) < im_col){
+//                    for(c = 0; c < im_chan; c++){
+//                        temp_h = img1[(A_x + x)*pre + (A_y + y)*im_chan + c] -
+//                                 img2[(B_x + x)*pre + (B_y + y)*im_chan + c];
+//                        dist += fabsf(temp_h);
+//                        count++;
+//                    }
+//                }
+//            }}
+//            break;
+//        case 1: // relative L1
+//            for(y=-patch_sz; y<=patch_sz; y++){
+//                for(x=-patch_sz; x<=patch_sz; x++){
+//                    if((A_x + x)>=0 && (A_y + y)>=0 && (A_x + x)<im_row && (A_y + y)<im_col
+//                       && (B_x + x)>=0 && (B_y + y)>=0 && (B_x + x)<im_row && (B_y + y)<im_col){
+//                        for(c=0; c<im_chan; c++){
+//                            temp_h = img1[(A_x + x)*pre + (A_y + y)*im_chan + c] -
+//                                     img2[(B_x + x)*pre + (B_y + y)*im_chan + c];
+//                            dist += fabsf(temp_h);
+//                            patch_sum += img1[(A_x + x)*pre + (A_y + y)*im_chan + c];
+//                            //dist+=temp_h*temp_h;
+//                            count++;
+//                        }
+//                    }
+//                }
+//            }
+//            dist = dist/patch_sum;
+//            break;
+//    }
+//    return dist/count;
+//}
+//
+//template<typename scalar_t>
+//__global__
+//void __idm_dist(scalar_t* img1, scalar_t* img2, scalar_t* dis,
+//                int im_row, int im_col, int im_chan,
+//                int patch_sz, int warp_sz, int step, int metric) {
+//    /* assume same size img */
+//    scalar_t best_dis, temp;
+//    int xx, yy;
+//    const int32_t x = blockIdx.x * blockDim.x + threadIdx.x;
+//    const int32_t y = blockIdx.y * blockDim.y + threadIdx.y;
+//    /* 3) Return distance */
+//    int count = 0;
+//    best_dis = FLT_MAX;
+//    for(xx = x - warp_sz; xx <= x + warp_sz; xx++){
+//    for(yy = y - warp_sz; yy <= y + warp_sz; yy++){
+//        if(xx >= 0 && yy >= 0 && xx < im_row && yy < im_col) {
+//                temp = patch_distance(x, y, xx, yy, im_row, im_col, im_chan,
+//                                      patch_sz, img1, img2, metric);
+//                if(temp < best_dis)
+//                    best_dis = temp;
+//        }
+//    }}
+//    dis[count] = best_dis;
+//    count++;
+//}
+//
+
+
 
 /**
  * Applies a median filter to the image stack with a window shape of [1, 1, 2 * radZ + 1] and returns the middle slice.
@@ -135,3 +209,26 @@ torch::Tensor cuda_median_3d(const torch::Tensor& sliceStack, const int radX, co
     return out;
 }
 
+//torch::Tensor idm_dist(const torch::Tensor& tensor1,
+//                       const torch::Tensor& tensor2,
+//                       int patch_size,
+//                       int warp_size,
+//                       int step,
+//                       int metric) {
+//    torch::Tensor out = at::zeros_like(sliceStack[0]);
+//    const int32_t dimX = sliceStack.size(2), dimY = sliceStack.size(1), dimZ = sliceStack.size(0);
+//    const dim3 blockDim(BLOCK_DIM_LEN, BLOCK_DIM_LEN, 0);
+//    const dim3 gridDim((dimX / blockDim.x + ((dimX % blockDim.x) ? 1 : 0)),
+//                       (dimY / blockDim.y + ((dimY % blockDim.y) ? 1 : 0)), 0);
+//
+//    AT_DISPATCH_FLOATING_TYPES(sliceStack.type(), "__median_3d", ([&] {
+//        __median_3d<scalar_t><<<gridDim, blockDim>>>(
+//                sliceStack.data<scalar_t>(),
+//                out.data<scalar_t>(),
+//                dimX,
+//                dimY,
+//                dimZ);
+//    }));
+//    return out;
+//
+//}

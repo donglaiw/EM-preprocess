@@ -25,10 +25,9 @@ torch::Tensor median_filter_v2(const torch::Tensor& tensor);
 torch::Tensor median_filter_v3(const torch::Tensor& tensor, const std::vector<int>& filtRads);
 
 /*Image deformation model distance needed in em_pre.==================================================================*/
-torch::Tensor idm_dist(const torch::Tensor& tensor1,
-                       const torch::Tensor& tensor2,
-                       const torch::Tensor& distance,
-                       int patch_size,
-                       int warp_size,
-                       int step,
-                       int metric);
+//torch::Tensor idm_dist(const torch::Tensor& tensor1,
+//                       const torch::Tensor& tensor2,
+//                       int patch_size,
+//                       int warp_size,
+//                       int step,
+//                       int metric);
