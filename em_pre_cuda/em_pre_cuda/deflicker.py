@@ -23,7 +23,6 @@ def _pre_process(image, global_stat, method='naive', sampling_step=10, mask_thre
     method.
     :return: the pre-processed image.
     """
-
     if method == 'naive':
         # mean/std
         if global_stat is not None:

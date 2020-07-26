@@ -1,12 +1,9 @@
-from setuptools import setup, Extension
-from Cython.Distutils import build_ext
-import numpy as np
-import glob
+from setuptools import setup
 
 NAME = "em_pre_cuda"
-VERSION = "0.0.4"
+VERSION = "0.1.0"
 DESCR = "C++/CUDA implementation of Deformation Models for Image Recognition"
-REQUIRES = ['cython', 'numpy', 'opencv-python', 'torch', 'h5py', 'em_torch_ext']
+REQUIRES = ['numpy', 'opencv-python', 'torch', 'h5py', 'em_torch_ext']
 
 AUTHOR = "Donglai Wei, Matin Raayai Ardakani"
 EMAIL = "weiddoonngglai@gmail.com, raayai.matin@gmail.com"
@@ -26,6 +23,5 @@ if __name__ == "__main__":
           description=DESCR,
           author=AUTHOR,
           author_email=EMAIL,
-          license=LICENSE,
-          cmdclass={"build_ext": build_ext}
+          license=LICENSE
           )
