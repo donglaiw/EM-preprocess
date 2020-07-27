@@ -39,8 +39,8 @@ def _pre_process(image, global_stat, method='naive', sampling_step=10, mask_thre
 
     elif method == 'threshold':
         if global_stat is not None:
-            im_x = image.shape[0] / 3
-            im_y = image.shape[1] / 3
+            im_x = image.shape[0] // 3
+            im_y = image.shape[1] // 3
             im_copy = image[im_x:im_x * 2:sampling_step, im_y:im_y * 2:sampling_step]
             if mask_thres[0] is not None:
                 im_copy = im_copy[im_copy > mask_thres[0]]
